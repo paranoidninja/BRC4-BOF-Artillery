@@ -1,20 +1,16 @@
-#include <windows.h>
-#include <stdio.h>
-
 #include "definitions.h"
-// #include "proofofpossessioncookieinfo.h"
 #include "badger_exports.h"
 
-typedef struct ProofOfPossessionCookieInfo
-    {
+// ============ Definitions Start ============
+
+typedef struct ProofOfPossessionCookieInfo {
     LPWSTR name;
     LPWSTR data;
     DWORD flags;
     LPWSTR p3pHeader;
-    } 	ProofOfPossessionCookieInfo;
+} ProofOfPossessionCookieInfo;
 
-__inline void FreeProofOfPossessionCookieInfoArray(_In_reads_(cookieInfoCount) ProofOfPossessionCookieInfo* cookieInfo, DWORD cookieInfoCount)
-{                                                
+__inline void FreeProofOfPossessionCookieInfoArray(_In_reads_(cookieInfoCount) ProofOfPossessionCookieInfo* cookieInfo, DWORD cookieInfoCount) {                                                
      DWORD i;                                    
      for (i = 0; i < cookieInfoCount; i++)       
      {                                           
@@ -28,8 +24,7 @@ __inline void FreeProofOfPossessionCookieInfoArray(_In_reads_(cookieInfoCount) P
 typedef interface IProofOfPossessionCookieInfoManager IProofOfPossessionCookieInfoManager;
 EXTERN_C const IID IID_IProofOfPossessionCookieInfoManager;
 
-typedef struct IProofOfPossessionCookieInfoManagerVtbl
-{
+typedef struct IProofOfPossessionCookieInfoManagerVtbl {
 	BEGIN_INTERFACE
 	
 	HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
@@ -53,10 +48,18 @@ typedef struct IProofOfPossessionCookieInfoManagerVtbl
 	END_INTERFACE
 } IProofOfPossessionCookieInfoManagerVtbl;
 
-interface IProofOfPossessionCookieInfoManager
-{
+interface IProofOfPossessionCookieInfoManager {
 	CONST_VTBL struct IProofOfPossessionCookieInfoManagerVtbl *lpVtbl;
 };
+
+
+// ============ Definitions End ============
+
+
+void printHelp(){
+	BadgerDispatch(g_dispatch, "[*] Usage: aadprt.o <nonce>\n");
+	BadgerDispatch(g_dispatch, "[*] <nonce>  (Optional argument) You can create a nonce using roadtx from ROADtools\n");
+}
 
 
 void requestaadprt(LPCWSTR uri) {
@@ -113,6 +116,14 @@ void coffee(char** argv, int argc, WCHAR** dispatch){
 	wchar_t * nonce = NULL;
 
 	g_dispatch = dispatch;
+
+	// Help check
+	for (int i = 0; i < argc; i++) {
+		if(BadgerStrcmp(argv[i], "-h") == 0){
+			printHelp();
+			return;
+		}
+	}
 
     // Optional argument nonce
     if (argc >= 1) {

@@ -5,34 +5,12 @@
 #include <tlhelp32.h>
 #include <winhttp.h>
 #include <process.h>
+#include <evntprov.h>
+#include <stdio.h>
+#include <winternl.h>
+#include <stdlib.h>
+#include <string.h>
 
-typedef unsigned long long REGHANDLE, *PREGHANDLE;
-
-typedef struct _EVENT_DESCRIPTOR {
-    USHORT Id;
-    UCHAR  Version;
-    UCHAR  Channel;
-    UCHAR  Level;
-    UCHAR  Opcode;
-    USHORT Task;
-    ULONGLONG Keyword;
-} EVENT_DESCRIPTOR, *PEVENT_DESCRIPTOR, *PCEVENT_DESCRIPTOR;
-
-typedef struct _EVENT_DATA_DESCRIPTOR {
-    ULONGLONG Ptr;
-    ULONG Size;
-    ULONG Reserved;
-} EVENT_DATA_DESCRIPTOR, *PEVENT_DATA_DESCRIPTOR;
-
-typedef ULONG (NTAPI *PENABLECALLBACK)(
-    LPCGUID SourceId,
-    ULONG IsEnabled,
-    UCHAR Level,
-    ULONGLONG MatchAnyKeyword,
-    ULONGLONG MatchAllKeyword,
-    PVOID FilterData,
-    PVOID CallbackContext
-);
 
 // MSVCRT
 WINBASEAPI size_t __cdecl MSVCRT$wcslen(const wchar_t *_Str);
@@ -87,6 +65,9 @@ WINBASEAPI HMODULE WINAPI KERNEL32$LoadLibraryA(LPCSTR lpLibFileName);
 WINBASEAPI BOOL WINAPI KERNEL32$FreeLibrary(HMODULE hLibModule);
 WINBASEAPI BOOL WINAPI KERNEL32$LocalFree(HLOCAL hMem);
 WINBASEAPI int WINAPI KERNEL32$MultiByteToWideChar(UINT CodePage, DWORD dwFlags, LPCSTR lpMultiByteStr, int cbMultiByte, LPWSTR lpWideCharStr, int cchWideChar);
+WINBASEAPI HANDLE WINAPI KERNEL32$CreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
+WINBASEAPI BOOL WINAPI KERNEL32$SetFileInformationByHandle(HANDLE hFile, FILE_INFO_BY_HANDLE_CLASS FileInformationClass, LPVOID lpFileInformation, DWORD dwBufferSize);
+WINBASEAPI DWORD WINAPI KERNEL32$GetModuleFileNameW(HMODULE hModule, LPWSTR lpFilename, DWORD nSize);
 
 
 // OLE32
@@ -162,5 +143,9 @@ DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcBindingSetAuthInfoExW(RPC_BINDING_HA
 DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcBindingFree(RPC_BINDING_HANDLE *Binding);
 DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcStringFreeW(RPC_WSTR *String);
 DECLSPEC_IMPORT CLIENT_CALL_RETURN RPC_VAR_ENTRY RPCRT4$NdrClientCall2(PMIDL_STUB_DESC pStubDescriptor, PFORMAT_STRING  pFormat, ...);
+
+
+WINBASEAPI BOOL WINAPI SHLWAPI$PathFileExistsW(LPCWSTR pszPath);
+
 
 #endif // end DEFINTIIONS_H

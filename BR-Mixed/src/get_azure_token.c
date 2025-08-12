@@ -1,12 +1,6 @@
-#include <process.h>
-#include <windows.h>
-#include <winhttp.h>
-
 #include "definitions.h"
 #include "badger_exports.h"
 
-// Credits to freefirex:
-// https://github.com/trustedsec/CS-Remote-OPs-BOF/blob/main/src/Remote/get_azure_token/entry.c
 #define RtlGenRandom ADVAPI32$SystemFunction036
 
 char fmtString[] = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=%s&response_type=code&redirect_uri=http://localhost:%d&prompt=none%s%s&response_mode=query&scope=%s&state=12345&code_challenge=%s&code_challenge_method=S256";
@@ -365,17 +359,32 @@ void StartAuthCodeFlow(flow_args *args, ctx *context) {
 
 #pragma endregion
 
+void printHelp(){
+    BadgerDispatch(g_dispatch, "[*] Usage: get_azure_token.o <client_id> <scope> <browser_id> <hint> <browser_path>\n");
+    BadgerDispatch(g_dispatch, "[*] <client_id>       Set the client id\n");
+    BadgerDispatch(g_dispatch, "[*] <scope>           Set the scope\n");
+    BadgerDispatch(g_dispatch, "[*] <browser_id>      Available Browser IDs:\n");
+    BadgerDispatch(g_dispatch, "                      0 - Edge\n");
+    BadgerDispatch(g_dispatch, "                      1 - Chrome\n");
+    BadgerDispatch(g_dispatch, "                      2 - Users Default Browser\n");
+    BadgerDispatch(g_dispatch, "                      3 - Other (Specify with <browser_path> arg)\n");
+    BadgerDispatch(g_dispatch, "[*] <hint>            (Optional - Set to 0 if not needed.)\n");
+    BadgerDispatch(g_dispatch, "[*] <browser_path>    (Optional - Set to 0 if not needed.)\n");
+}
+
 void coffee(char **argv, int argc, WCHAR **dispatch) {
     g_dispatch = dispatch;
 
+    // Help check
+	for (int i = 0; i < argc; i++) {
+		if(BadgerStrcmp(argv[i], "-h") == 0){
+			printHelp();
+			return;
+		}
+	}
+
     if (argc < 5) {
-        BadgerDispatch(g_dispatch, "[-] Usage: get_azure_token.o <client_id> <scope> <browser_id> <hint> <browser_path>\n");
-        BadgerDispatch(g_dispatch, "[-] <hint> and <browser_path> are optional; set to 0 if not needed\n");
-        BadgerDispatch(g_dispatch, "Available Browser IDs:\n");
-        BadgerDispatch(g_dispatch, "\t0 - Edge\n");
-        BadgerDispatch(g_dispatch, "\t1 - Chrome\n");
-        BadgerDispatch(g_dispatch, "\t2 - Users Default Browser\n");
-        BadgerDispatch(g_dispatch, "\t3 - Other (Specify with <browser_path> arg)\n");
+        printHelp();
         return;
     }
 

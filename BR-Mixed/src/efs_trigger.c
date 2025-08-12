@@ -1,11 +1,21 @@
-#include <windows.h>
-
 #include "definitions.h"
 #include "badger_exports.h"
 
+void printHelp(){
+	BadgerDispatch(g_dispatch, "[*] Usage: efs_trigger.o <filepath>\n");
+	BadgerDispatch(g_dispatch, "[*] <filepath>  (Optional argument) Overwrites the default filepath of the temporary file\n");
+}
 
 void coffee( char ** argv, int argc, WCHAR** dispatch) {
 	LPSTR pszFilePath = ".\\test.txt";
+
+	// Help check
+	for (int i = 0; i < argc; i++) {
+		if(BadgerStrcmp(argv[i], "-h") == 0){
+			printHelp();
+			return;
+		}
+	}
 
 	if(argc >= 1) {
 		pszFilePath = argv[0];

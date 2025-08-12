@@ -1,9 +1,3 @@
-#include <windows.h>
-#include <stdio.h>
-#include <winternl.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "definitions.h"
 #include "badger_exports.h"
 
@@ -70,9 +64,25 @@ void* LoadFunctionFromDLL(HINSTANCE hDLL, const char* functionName) {
     return functionPtr;
 }
 
+void printHelp(){
+    BadgerDispatch(g_dispatch, "[*] Usage: session_enum.o <targetName>\n");
+    BadgerDispatch(g_dispatch, "[*] <targetName>    Target server hostname (max. len: %d)\n", HOSTNAME_MAX_LEN);
+}
+
 void coffee(char** argv, int argc, WCHAR** dispatch) {
+
+    g_dispatch = dispatch;
+
+    // Help check
+	for (int i = 0; i < argc; i++) {
+		if(BadgerStrcmp(argv[i], "-h") == 0){
+			printHelp();
+			return;
+		}
+	}
+
     if (argc < 1) {
-        BadgerDispatch(dispatch, "%s\n", "[-] Usage: session_enum.o <serverName>");
+        printHelp();
         return;
     }
     LPSTR pszServerName = argv[0];
@@ -80,26 +90,26 @@ void coffee(char** argv, int argc, WCHAR** dispatch) {
     size_t convertedSize = 0; 
 
     if(BadgerStrlen(pszServerName) > HOSTNAME_MAX_LEN){
-        BadgerDispatch(dispatch, "[-] Server name exceeds maximum length.\n");
+        BadgerDispatch(g_dispatch, "[-] Server name exceeds maximum length.\n");
         return;
     }
 
     errno_t err = MSVCRT$mbstowcs_s(&convertedSize, wszServerName, HOSTNAME_MAX_LEN + 1, pszServerName, _TRUNCATE);
     if(err != 0){
-        BadgerDispatch(dispatch, "[-] Server name conversion failed\n");
+        BadgerDispatch(g_dispatch, "[-] Server name conversion failed\n");
         return;
     }
 
     if (convertedSize - 1 > HOSTNAME_MAX_LEN) {
-        BadgerDispatch(dispatch, "[-] Hostname too long after conversion\n");
+        BadgerDispatch(g_dispatch, "[-] Hostname too long after conversion\n");
         return;
     }
 
-    BadgerDispatch(dispatch, "[*] Querying server: '%s'\n", pszServerName);
+    BadgerDispatch(g_dispatch, "[*] Querying server: '%s'\n", pszServerName);
 
     HINSTANCE hDLL = KERNEL32$LoadLibraryA("winsta.dll");
     if (!hDLL) {
-        BadgerDispatch(dispatch, "[-] Failed to load winsta.dll\n");
+        BadgerDispatch(g_dispatch, "[-] Failed to load winsta.dll\n");
         goto cleanup;
     }
 
@@ -109,24 +119,24 @@ void coffee(char** argv, int argc, WCHAR** dispatch) {
     LPFN_WinStationQueryInformationW pfnWinStationQueryInformationW = (LPFN_WinStationQueryInformationW)LoadFunctionFromDLL(hDLL, "WinStationQueryInformationW");
 
     if (!pfnWinStationOpenServerW || !pfnWinStationCloseServer || !pfnWinStationEnumerateW || !pfnWinStationQueryInformationW) {
-        BadgerDispatch(dispatch, "[-] Failed to resolve one or more functions.\n");
+        BadgerDispatch(g_dispatch, "[-] Failed to resolve one or more functions.\n");
         goto cleanup;
     }
 
     HANDLE hServer = pfnWinStationOpenServerW(wszServerName);
     if (!hServer) {
-        BadgerDispatch(dispatch, "[-] Failed to open server\n");
+        BadgerDispatch(g_dispatch, "[-] Failed to open server\n");
         goto cleanup;
     }
 
-    BadgerDispatch(dispatch, "[*] Successfully opened server\n");
+    BadgerDispatch(g_dispatch, "[*] Successfully opened server\n");
 
     PSESSIONIDW pSessionIds = NULL;
     ULONG count = 0;
     BOOLEAN enumResult = pfnWinStationEnumerateW(hServer, &pSessionIds, &count);
 
     if (enumResult && pSessionIds) {
-        BadgerDispatch(dispatch, "[*] Number of sessions: %lu\n", count);
+        BadgerDispatch(g_dispatch, "[*] Number of sessions: %lu\n", count);
 
         for (ULONG i = 0; i < count; i++) {
 
@@ -139,9 +149,9 @@ void coffee(char** argv, int argc, WCHAR** dispatch) {
             WINSTATIONINFORMATIONW wsInfo;
             ULONG ReturnLen;
 
-            BadgerDispatch(dispatch, "\nSession ID: %lu\n", pSessionIds[i].SessionId);
-            BadgerDispatch(dispatch, "State: %lu\n", pSessionIds[i].State);
-            BadgerDispatch(dispatch, "Session Name: %s\n", sessionName);
+            BadgerDispatch(g_dispatch, "\nSession ID: %lu\n", pSessionIds[i].SessionId);
+            BadgerDispatch(g_dispatch, "State: %lu\n", pSessionIds[i].State);
+            BadgerDispatch(g_dispatch, "Session Name: %s\n", sessionName);
 
             
 
@@ -184,12 +194,12 @@ void coffee(char** argv, int argc, WCHAR** dispatch) {
                 BadgerFree((PVOID*)&reserved3Strings);
             }
 
-            BadgerDispatch(dispatch, "Username: %s\n", userNameStr);
+            BadgerDispatch(g_dispatch, "Username: %s\n", userNameStr);
         }
 
         KERNEL32$LocalFree(pSessionIds);
     } else {
-        BadgerDispatch(dispatch, "[-] Failed to enumerate sessions.\n");
+        BadgerDispatch(g_dispatch, "[-] Failed to enumerate sessions.\n");
     }
 
     pfnWinStationCloseServer(hServer);

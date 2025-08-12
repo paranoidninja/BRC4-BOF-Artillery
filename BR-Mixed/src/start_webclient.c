@@ -1,8 +1,9 @@
-#include <windows.h>
-#include <evntprov.h>
-
 #include "definitions.h"
 #include "badger_exports.h"
+
+void printHelp(){
+    BadgerDispatch(g_dispatch, "[*] Usage: start_webclient.o\n");
+}
 
 void coffee(char** argv, int argc, WCHAR** dispatch) {
     ULONG status = ERROR_SUCCESS;
@@ -11,6 +12,14 @@ void coffee(char** argv, int argc, WCHAR** dispatch) {
     const GUID _MS_Windows_WebClntLookupServiceTrigger_Provider =
         { 0x22B6D684, 0xFA63, 0x4578,
         { 0x87, 0xC9, 0xEF, 0xFC, 0xBE, 0x66, 0x43, 0xC7 } };
+
+    // Help check
+	for (int i = 0; i < argc; i++) {
+		if(BadgerStrcmp(argv[i], "-h") == 0){
+			printHelp();
+			return;
+		}
+	}
 
     status = ADVAPI32$EventRegister(&_MS_Windows_WebClntLookupServiceTrigger_Provider, NULL, NULL, &RegistrationHandle);
     if (status != ERROR_SUCCESS) {

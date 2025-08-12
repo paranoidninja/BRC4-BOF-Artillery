@@ -162,7 +162,7 @@ dll_info *get_dll_info(const char *dll_name) {
 
     do {
         if (BadgerStrcmp("svchost.exe", pe32.szExeFile) != 0) {
-        continue;
+            continue;
         }
 
         HANDLE hModuleSnap = KERNEL32$CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pe32.th32ProcessID);
