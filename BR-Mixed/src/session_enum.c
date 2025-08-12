@@ -3,15 +3,11 @@
 #include <winternl.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "definitions.h"
 #include "badger_exports.h"
 
-WINBASEAPI FARPROC WINAPI KERNEL32$GetProcAddress(HMODULE hModule, LPCSTR lpProcName);
-WINBASEAPI HMODULE WINAPI KERNEL32$LoadLibraryA(LPCSTR lpLibFileName);
-WINBASEAPI BOOL WINAPI KERNEL32$FreeLibrary(HMODULE hLibModule);
-WINBASEAPI BOOL WINAPI KERNEL32$LocalFree(HLOCAL hMem);
-WINBASEAPI int WINAPI KERNEL32$MultiByteToWideChar(UINT CodePage, DWORD dwFlags, LPCSTR lpMultiByteStr, int cbMultiByte, LPWSTR lpWideCharStr, int cchWideChar);
-WINBASEAPI errno_t __cdecl MSVCRT$wcscpy_s(wchar_t *_Dst, rsize_t _DstSize, const wchar_t *_Src);
-WINBASEAPI size_t __cdecl MSVCRT$wcstombs(char* _Dest, const wchar_t* _Source, size_t _MaxCount);
+#define HOSTNAME_MAX_LEN 20
 
 // i ripped these structs from https://processhacker.sourceforge.io/doc/winsta_8h_source.html
 typedef WCHAR WINSTATIONNAME[32 + 1];
@@ -69,42 +65,41 @@ void* LoadFunctionFromDLL(HINSTANCE hDLL, const char* functionName) {
     void* functionPtr = (void*)KERNEL32$GetProcAddress(hDLL, functionName);
     if (functionPtr == NULL) {
         KERNEL32$FreeLibrary(hDLL);
-        exit(1);
+        return NULL;
     }
     return functionPtr;
 }
 
 void coffee(char** argv, int argc, WCHAR** dispatch) {
     if (argc < 1) {
-        BadgerDispatch(dispatch, "%s\n", "[!] Usage: session_enum.o <serverName>");
+        BadgerDispatch(dispatch, "%s\n", "[-] Usage: session_enum.o <serverName>");
         return;
     }
     LPSTR pszServerName = argv[0];
+    wchar_t wszServerName[HOSTNAME_MAX_LEN + 1];
+    size_t convertedSize = 0; 
+
+    if(BadgerStrlen(pszServerName) > HOSTNAME_MAX_LEN){
+        BadgerDispatch(dispatch, "[-] Server name exceeds maximum length.\n");
+        return;
+    }
+
+    errno_t err = MSVCRT$mbstowcs_s(&convertedSize, wszServerName, HOSTNAME_MAX_LEN + 1, pszServerName, _TRUNCATE);
+    if(err != 0){
+        BadgerDispatch(dispatch, "[-] Server name conversion failed\n");
+        return;
+    }
+
+    if (convertedSize - 1 > HOSTNAME_MAX_LEN) {
+        BadgerDispatch(dispatch, "[-] Hostname too long after conversion\n");
+        return;
+    }
 
     BadgerDispatch(dispatch, "[*] Querying server: '%s'\n", pszServerName);
 
-    int size_needed = KERNEL32$MultiByteToWideChar(CP_UTF8, 0, pszServerName, -1, NULL, 0);
-    if (size_needed <= 0) {
-        BadgerDispatch(dispatch, "[!] Invalid server name encoding.\n");
-        return;
-    }
-
-    wchar_t* pwszServerName = (wchar_t*)BadgerAlloc(size_needed * sizeof(wchar_t));
-    if (!pwszServerName) {
-        BadgerDispatch(dispatch, "[!] Allocation failed.\n");
-        return;
-    }
-
-    KERNEL32$MultiByteToWideChar(CP_UTF8, 0, pszServerName, -1, pwszServerName, size_needed);
-
-    if (BadgerWcslen(pwszServerName) > 20) {
-        BadgerDispatch(dispatch, "[!] Server name exceeds maximum length.\n");
-        goto cleanup;
-    }
-
     HINSTANCE hDLL = KERNEL32$LoadLibraryA("winsta.dll");
     if (!hDLL) {
-        BadgerDispatch(dispatch, "[!] Failed to load winsta.dll\n");
+        BadgerDispatch(dispatch, "[-] Failed to load winsta.dll\n");
         goto cleanup;
     }
 
@@ -114,13 +109,13 @@ void coffee(char** argv, int argc, WCHAR** dispatch) {
     LPFN_WinStationQueryInformationW pfnWinStationQueryInformationW = (LPFN_WinStationQueryInformationW)LoadFunctionFromDLL(hDLL, "WinStationQueryInformationW");
 
     if (!pfnWinStationOpenServerW || !pfnWinStationCloseServer || !pfnWinStationEnumerateW || !pfnWinStationQueryInformationW) {
-        BadgerDispatch(dispatch, "[!] Failed to resolve one or more functions.\n");
+        BadgerDispatch(dispatch, "[-] Failed to resolve one or more functions.\n");
         goto cleanup;
     }
 
-    HANDLE hServer = pfnWinStationOpenServerW(pwszServerName);
+    HANDLE hServer = pfnWinStationOpenServerW(wszServerName);
     if (!hServer) {
-        BadgerDispatch(dispatch, "[!] Failed to open server\n");
+        BadgerDispatch(dispatch, "[-] Failed to open server\n");
         goto cleanup;
     }
 
@@ -131,9 +126,10 @@ void coffee(char** argv, int argc, WCHAR** dispatch) {
     BOOLEAN enumResult = pfnWinStationEnumerateW(hServer, &pSessionIds, &count);
 
     if (enumResult && pSessionIds) {
-        BadgerDispatch(dispatch, "Number of sessions: %lu\n", count);
+        BadgerDispatch(dispatch, "[*] Number of sessions: %lu\n", count);
 
         for (ULONG i = 0; i < count; i++) {
+
             char sessionName[33] = {0};
             char userNameStr[256] = "<unknown>";
 
@@ -143,9 +139,11 @@ void coffee(char** argv, int argc, WCHAR** dispatch) {
             WINSTATIONINFORMATIONW wsInfo;
             ULONG ReturnLen;
 
-            BadgerDispatch(dispatch, "Session ID: %lu\n", pSessionIds[i].SessionId);
+            BadgerDispatch(dispatch, "\nSession ID: %lu\n", pSessionIds[i].SessionId);
             BadgerDispatch(dispatch, "State: %lu\n", pSessionIds[i].State);
             BadgerDispatch(dispatch, "Session Name: %s\n", sessionName);
+
+            
 
             if (pfnWinStationQueryInformationW(hServer,
                                                pSessionIds[i].SessionId,
@@ -176,14 +174,14 @@ void coffee(char** argv, int argc, WCHAR** dispatch) {
                 }
 
                 for (size_t j = 0; j < reserved2Count; j++) {
-                    BadgerFree((void*)reserved2Strings[j]);
+                    BadgerFree((PVOID*)&reserved2Strings[j]);
                 }
                 for (size_t j = 0; j < reserved3Count; j++) {
-                    BadgerFree((void*)reserved3Strings[j]);
+                    BadgerFree((PVOID*)&reserved3Strings[j]);
                 }
 
-                BadgerFree((void*)reserved2Strings);
-                BadgerFree((void*)reserved3Strings);
+                BadgerFree((PVOID*)&reserved2Strings);
+                BadgerFree((PVOID*)&reserved3Strings);
             }
 
             BadgerDispatch(dispatch, "Username: %s\n", userNameStr);
@@ -191,13 +189,12 @@ void coffee(char** argv, int argc, WCHAR** dispatch) {
 
         KERNEL32$LocalFree(pSessionIds);
     } else {
-        BadgerDispatch(dispatch, "[!] Failed to enumerate sessions.\n");
+        BadgerDispatch(dispatch, "[-] Failed to enumerate sessions.\n");
     }
 
     pfnWinStationCloseServer(hServer);
 
 cleanup:
-    if (hDLL) KERNEL32$FreeLibrary(hDLL);
-    if (pwszServerName) BadgerFree((void*)pwszServerName);
+    if (!hDLL) KERNEL32$FreeLibrary(hDLL);
 }
 
