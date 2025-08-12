@@ -56,7 +56,7 @@ void extractWideStrings(const BYTE* byteArray, size_t size, wchar_t*** strings, 
 }
 
 void* LoadFunctionFromDLL(HINSTANCE hDLL, const char* functionName) {
-    void* functionPtr = (void*)KERNEL32$GetProcAddress(hDLL, functionName);
+    void* functionPtr = (void*)(uintptr_t)KERNEL32$GetProcAddress(hDLL, functionName);
     if (functionPtr == NULL) {
         KERNEL32$FreeLibrary(hDLL);
         return NULL;
@@ -113,10 +113,10 @@ void coffee(char** argv, int argc, WCHAR** dispatch) {
         goto cleanup;
     }
 
-    LPFN_WinStationOpenServerW pfnWinStationOpenServerW = (LPFN_WinStationOpenServerW)LoadFunctionFromDLL(hDLL, "WinStationOpenServerW");
-    LPFN_WinStationCloseServer pfnWinStationCloseServer = (LPFN_WinStationCloseServer)LoadFunctionFromDLL(hDLL, "WinStationCloseServer");
-    LPFN_WinStationEnumerateW pfnWinStationEnumerateW = (LPFN_WinStationEnumerateW)LoadFunctionFromDLL(hDLL, "WinStationEnumerateW");
-    LPFN_WinStationQueryInformationW pfnWinStationQueryInformationW = (LPFN_WinStationQueryInformationW)LoadFunctionFromDLL(hDLL, "WinStationQueryInformationW");
+    LPFN_WinStationOpenServerW pfnWinStationOpenServerW = (LPFN_WinStationOpenServerW)(uintptr_t)LoadFunctionFromDLL(hDLL, "WinStationOpenServerW");
+    LPFN_WinStationCloseServer pfnWinStationCloseServer = (LPFN_WinStationCloseServer)(uintptr_t)LoadFunctionFromDLL(hDLL, "WinStationCloseServer");
+    LPFN_WinStationEnumerateW pfnWinStationEnumerateW = (LPFN_WinStationEnumerateW)(uintptr_t)LoadFunctionFromDLL(hDLL, "WinStationEnumerateW");
+    LPFN_WinStationQueryInformationW pfnWinStationQueryInformationW = (LPFN_WinStationQueryInformationW)(uintptr_t)LoadFunctionFromDLL(hDLL, "WinStationQueryInformationW");
 
     if (!pfnWinStationOpenServerW || !pfnWinStationCloseServer || !pfnWinStationEnumerateW || !pfnWinStationQueryInformationW) {
         BadgerDispatch(g_dispatch, "[-] Failed to resolve one or more functions.\n");

