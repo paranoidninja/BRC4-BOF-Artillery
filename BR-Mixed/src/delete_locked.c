@@ -3,6 +3,10 @@
 
 #define DS_STREAM_RENAME L":loeffel"
 
+#ifndef FileDispositionInfoEx
+#define FileDispositionInfoEx 21
+#endif
+
 static void* ds_rename_handle(HANDLE hHandle) {
 	LPCWSTR lpwStream = DS_STREAM_RENAME;
 
@@ -37,7 +41,7 @@ static BOOL ds_deposite_handle(HANDLE hHandle) {
 
 	fDeleteEx.Flags = FILE_DISPOSITION_FLAG_DELETE | FILE_DISPOSITION_FLAG_POSIX_SEMANTICS;
 
-	return KERNEL32$SetFileInformationByHandle(hHandle, FileDispositionInfo, &fDeleteEx, sizeof(fDeleteEx));
+	return KERNEL32$SetFileInformationByHandle(hHandle, FileDispositionInfoEx, &fDeleteEx, sizeof(fDeleteEx));
 }
 
 
