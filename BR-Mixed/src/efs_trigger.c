@@ -3,11 +3,13 @@
 
 void printHelp(){
 	BadgerDispatch(g_dispatch, "[*] Usage: efs_trigger.o <filepath>\n");
-	BadgerDispatch(g_dispatch, "[*] <filepath>  (Optional argument) Overwrites the default filepath of the temporary file\n");
+	BadgerDispatch(g_dispatch, "[*] <filepath>    (Optional argument) Overwrites the default filepath of the temporary file\n");
 }
 
 void coffee( char ** argv, int argc, WCHAR** dispatch) {
 	LPSTR pszFilePath = ".\\test.txt";
+
+	g_dispatch = dispatch;
 
 	// Help check
 	for (int i = 0; i < argc; i++) {

@@ -302,9 +302,20 @@ BOOL PatchTermService(PATCH_GENERIC *generics, SIZE_T cbGenerics, PCWSTR moduleN
     return FALSE;
 }
 
+void printHelp(){
+	BadgerDispatch(g_dispatch, "[*] Usage: multi_rdp.o\n");
+}
 
 void coffee(char ** argv, int argc, WCHAR** dispatch) {
     g_dispatch = dispatch;
+
+    // Help check
+	for (int i = 0; i < argc; i++) {
+		if(BadgerStrcmp(argv[i], "-h") == 0){
+			printHelp();
+			return;
+		}
+	}
 
     if (!BadgerAddPrivilege(SE_DEBUG_NAME)) {
         BadgerDispatch(g_dispatch, "[-] Failed to activate SeDebugPrivilege\n");

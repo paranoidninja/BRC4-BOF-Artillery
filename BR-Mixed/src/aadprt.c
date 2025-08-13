@@ -58,7 +58,7 @@ interface IProofOfPossessionCookieInfoManager {
 
 void printHelp(){
 	BadgerDispatch(g_dispatch, "[*] Usage: aadprt.o <nonce>\n");
-	BadgerDispatch(g_dispatch, "[*] <nonce>  (Optional argument) You can create a nonce using roadtx from ROADtools\n");
+	BadgerDispatch(g_dispatch, "[*] <nonce>    (Optional argument) You can create a nonce using roadtx from ROADtools\n");
 }
 
 
