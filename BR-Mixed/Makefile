@@ -1,6 +1,6 @@
 CC = x86_64-w64-mingw32-gcc
 CFLAGS = -m64 -Os -s -pedantic -nostdlib -fno-jump-tables -fdiagnostics-color=always -fno-ident -Wshadow -Wconversion -Wall
-INCLUDES = -I includes
+INCLUDES = -I includes -I ..
 SRC_DIR = src
 OBJ_DIR = bofs
 

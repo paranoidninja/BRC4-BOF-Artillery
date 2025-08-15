@@ -1,7 +1,9 @@
 #include "definitions.h"
 #include "badger_exports.h"
 
+#ifndef RtlGenRandom
 #define RtlGenRandom ADVAPI32$SystemFunction036
+#endif
 
 char fmtString[] = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=%s&response_type=code&redirect_uri=http://localhost:%d&prompt=none%s%s&response_mode=query&scope=%s&state=12345&code_challenge=%s&code_challenge_method=S256";
 const char allowed_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";

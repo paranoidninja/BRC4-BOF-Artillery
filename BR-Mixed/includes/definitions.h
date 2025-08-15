@@ -1,6 +1,8 @@
 #ifndef DEFINTIIONS_H
 #define DEFINTIIONS_H
 
+#define SECURITY_WIN32
+
 #include <windows.h>
 #include <tlhelp32.h>
 #include <winhttp.h>
