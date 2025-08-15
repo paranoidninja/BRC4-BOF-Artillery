@@ -10,6 +10,11 @@
 #include <winternl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <ctype.h>
+#include <shlobj.h>
+#include <errno.h>    
+#include <security.h>
 
 
 // MSVCRT
@@ -33,6 +38,14 @@ WINBASEAPI void* __cdecl MSVCRT$malloc( size_t size);
 WINBASEAPI void __cdecl MSVCRT$free( void* memblock);
 WINBASEAPI size_t __cdecl MSVCRT$wcstombs(char* _Dest, const wchar_t* _Source, size_t _MaxCount);
 WINBASEAPI int __cdecl MSVCRT$memcmp(const void *buffer1, const void *buffer2, size_t count);
+WINBASEAPI char* __cdecl  MSVCRT$strncpy (char * __dst, const char * __src, size_t __n);
+WINBASEAPI char* __cdecl  MSVCRT$strncat (char * _Dest,const char * _Source, size_t __n);
+DECLSPEC_IMPORT int WINAPI MSVCRT$strcmp(const char*, const char*);
+WINBASEAPI int WINAPI MSVCRT$sprintf(char * str, const char * format, ... );
+DECLSPEC_IMPORT WINBASEAPI int __cdecl MSVCRT$printf(const char * __restrict__ _Format,...);
+DECLSPEC_IMPORT WINBASEAPI size_t __cdecl MSVCRT$strlen(const char *_Str);
+DECLSPEC_IMPORT WINBASEAPI void *__cdecl MSVCRT$memcpy(void * __restrict__ _Dst,const void * __restrict__ _Src,size_t _MaxCount);
+
 
 // KERNEL32
 WINBASEAPI LPWSTR WINAPI KERNEL32$lstrcpynW (LPWSTR lpString1, LPCWSTR lpString2, int iMaxLength);
@@ -68,7 +81,18 @@ WINBASEAPI int WINAPI KERNEL32$MultiByteToWideChar(UINT CodePage, DWORD dwFlags,
 WINBASEAPI HANDLE WINAPI KERNEL32$CreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
 WINBASEAPI BOOL WINAPI KERNEL32$SetFileInformationByHandle(HANDLE hFile, FILE_INFO_BY_HANDLE_CLASS FileInformationClass, LPVOID lpFileInformation, DWORD dwBufferSize);
 WINBASEAPI DWORD WINAPI KERNEL32$GetModuleFileNameW(HMODULE hModule, LPWSTR lpFilename, DWORD nSize);
-
+WINBASEAPI BOOL WINAPI KERNEL32$WriteFile(HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped);
+WINBASEAPI DWORD   WINAPI KERNEL32$GetFileSize (HANDLE hFile, LPDWORD lpFileSizeHigh);
+WINBASEAPI HGLOBAL WINAPI KERNEL32$GlobalAlloc (UINT uFlags, SIZE_T dwBytes);
+WINBASEAPI HGLOBAL WINAPI KERNEL32$GlobalReAlloc (HGLOBAL hMem, SIZE_T dwBytes, UINT uFlags);
+WINBASEAPI BOOL WINAPI    KERNEL32$ReadFile (HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped);
+WINBASEAPI HGLOBAL WINAPI KERNEL32$GlobalFree (HGLOBAL hMem);
+WINBASEAPI DWORD WINAPI KERNEL32$GetFileType(HANDLE hFile);
+WINBASEAPI BOOL WINAPI    KERNEL32$DuplicateHandle (HANDLE hSourceProcessHandle, HANDLE hSourceHandle, HANDLE hTargetProcessHandle, LPHANDLE lpTargetHandle, DWORD dwDesiredAccess, WINBOOL bInheritHandle, DWORD dwOptions);
+WINBASEAPI DWORD WINAPI   KERNEL32$SetFilePointer (HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod);
+DECLSPEC_IMPORT     WINBASEAPI HANDLE WINAPI KERNEL32$GetCurrentThread(VOID);
+DECLSPEC_IMPORT     WINBASEAPI WINBOOL WINAPI KERNEL32$ReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped);
+DECLSPEC_IMPORT     WINBASEAPI DWORD WINAPI KERNEL32$GetTickCount(VOID);
 
 // OLE32
 DECLSPEC_IMPORT HRESULT WINAPI OLE32$CLSIDFromString (LPCOLESTR lpsz, LPCLSID pclsid);
@@ -77,6 +101,8 @@ DECLSPEC_IMPORT HRESULT WINAPI OLE32$CoInitializeEx (LPVOID pvReserved, DWORD dw
 DECLSPEC_IMPORT HRESULT WINAPI OLE32$CoCreateInstance (REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv);
 DECLSPEC_IMPORT void	WINAPI OLE32$CoTaskMemFree(LPVOID pv);
 DECLSPEC_IMPORT HRESULT WINAPI OLE32$CreateStreamOnHGlobal(HGLOBAL hGlobal, BOOL fDeleteOnRelease, LPSTREAM *ppstm);
+DECLSPEC_IMPORT HRESULT WINAPI OLE32$CoUninitialize (void);
+DECLSPEC_IMPORT	HRESULT WINAPI OLE32$CoSetProxyBlanket(IUnknown* pProxy, DWORD dwAuthnSvc, DWORD dwAuthzSvc, OLECHAR* pServerPrincName, DWORD dwAuthnLevel, DWORD dwImpLevel, RPC_AUTH_IDENTITY_HANDLE pAuthInfo, DWORD dwCapabilities);
 
 
 // BCRYPT
@@ -90,6 +116,8 @@ WINBASEAPI NTSTATUS WINAPI BCRYPT$BCryptCloseAlgorithmProvider(BCRYPT_ALG_HANDLE
 
 // CRYPT32
 WINIMPM WINBOOL WINAPI CRYPT32$CryptBinaryToStringA(CONST BYTE *pbBinary, DWORD cbBinary, DWORD dwFlags, LPSTR pszString, DWORD *pcchString);
+WINBASEAPI BOOL WINAPI    CRYPT32$CryptStringToBinaryA (LPCSTR pszString, DWORD cchString, DWORD dwFlags, BYTE *pbBinary, DWORD *pcbBinary, DWORD *pdwSkip, DWORD *pdwFlags);
+WINBASEAPI BOOL  WINAPI   CRYPT32$CryptUnprotectData (DATA_BLOB *pDataIn, LPWSTR *ppszDataDescr, DATA_BLOB *pOptionalEntropy, PVOID pvReserved, CRYPTPROTECT_PROMPTSTRUCT *pPromptStruct, DWORD dwFlags, DATA_BLOB *pDataOut);
 
 
 // ADVAPI32
@@ -97,6 +125,12 @@ WINBASEAPI WINBOOL WINAPI ADVAPI32$SystemFunction036(PVOID RandomBuffer, ULONG R
 WINBASEAPI ULONG WINAPI ADVAPI32$EventRegister(LPCGUID ProviderId, PENABLECALLBACK EnableCallback, PVOID CallbackContext, PREGHANDLE RegHandle);
 WINBASEAPI ULONG WINAPI ADVAPI32$EventWrite(REGHANDLE RegHandle, PCEVENT_DESCRIPTOR EventDescriptor, ULONG UserDataCount, PEVENT_DATA_DESCRIPTOR UserData);
 WINBASEAPI ULONG WINAPI ADVAPI32$EventUnregister(REGHANDLE RegHandle);
+WINADVAPI WINBOOL WINAPI ADVAPI32$RevertToSelf();
+WINADVAPI WINBOOL WINAPI ADVAPI32$OpenProcessToken (HANDLE ProcessHandle, DWORD DesiredAccess, PHANDLE TokenHandle);
+WINADVAPI WINBOOL WINAPI ADVAPI32$DuplicateTokenEx(HANDLE,DWORD,LPSECURITY_ATTRIBUTES,SECURITY_IMPERSONATION_LEVEL,TOKEN_TYPE,PHANDLE);
+WINADVAPI WINBOOL WINAPI ADVAPI32$ImpersonateLoggedOnUser(HANDLE);
+DECLSPEC_IMPORT     WINADVAPI WINBOOL WINAPI ADVAPI32$OpenThreadToken(HANDLE ThreadHandle, DWORD DesiredAccess, BOOL OpenAsSelf, PHANDLE TokenHandle);
+DECLSPEC_IMPORT     WINADVAPI BOOL WINAPI ADVAPI32$GetTokenInformation(HANDLE TokenHandle, TOKEN_INFORMATION_CLASS TokenInformationClass, LPVOID TokenInformation, DWORD TokenInformationLength, PDWORD ReturnLength);
 
 
 // USER32
@@ -117,12 +151,14 @@ WINBASEAPI SOCKET WINAPI WS2_32$accept(SOCKET s, struct sockaddr *addr, int *add
 WINBASEAPI int WINAPI WS2_32$WSAStartup(WORD wVersionRequested, LPWSADATA lpWSAData);
 WINBASEAPI int WINAPI WS2_32$WSACleanup(void);
 
+
 // WSOCK32
 WINBASEAPI unsigned long WINAPI WSOCK32$inet_addr(const char *cp);
 
 
 // SHELL32
 WINBASEAPI HINSTANCE WINAPI SHELL32$ShellExecuteA(HWND hwnd, LPCSTR lpOperation, LPCSTR lpFile, LPCSTR lpParameters, LPCSTR lpDirectory, INT nShowCmd);
+WINBASEAPI SHFOLDERAPI WINAPI SHELL32$SHGetFolderPathA(HWND hwnd, int csidl, HANDLE hToken, DWORD dwFlags, LPSTR pszPath);
 
 
 // WINHTTP
@@ -145,7 +181,34 @@ DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcStringFreeW(RPC_WSTR *String);
 DECLSPEC_IMPORT CLIENT_CALL_RETURN RPC_VAR_ENTRY RPCRT4$NdrClientCall2(PMIDL_STUB_DESC pStubDescriptor, PFORMAT_STRING  pFormat, ...);
 
 
+// SHLWAPI
 WINBASEAPI BOOL WINAPI SHLWAPI$PathFileExistsW(LPCWSTR pszPath);
+WINBASEAPI LPSTR WINAPI SHLWAPI$StrStrIA(LPCSTR lpFirst,LPCSTR lpSrch);
+WINBASEAPI BOOL WINAPI SHLWAPI$PathAppendA(LPSTR pszPath, LPCSTR pszMore);
 
+// NTDLL
+DECLSPEC_IMPORT NTSTATUS WINAPI NTDLL$NtQuerySystemInformation(int SystemInformationClass,PVOID SystemInformation,ULONG SystemInformationLength,PULONG ReturnLength);
+DECLSPEC_IMPORT NTSTATUS NTAPI NTDLL$NtQueryObject(HANDLE, OBJECT_INFORMATION_CLASS, PVOID, ULONG, PULONG);
+
+
+// OLEAUT32
+WINBASEAPI BSTR WINAPI OLEAUT32$SysAllocStringByteLen(LPCSTR psz,UINT len);
+WINBASEAPI void WINAPI OLEAUT32$SysFreeString(BSTR);
+WINBASEAPI UINT WINAPI OLEAUT32$SysStringByteLen(BSTR bstr);
+
+
+// NCRYPT
+DECLSPEC_IMPORT SECURITY_STATUS WINAPI NCRYPT$NCryptFreeObject (NCRYPT_HANDLE hObject);
+DECLSPEC_IMPORT SECURITY_STATUS WINAPI NCRYPT$NCryptDecrypt (NCRYPT_KEY_HANDLE hKey, PBYTE pbInput, DWORD cbInput, VOID *pPaddingInfo, PBYTE pbOutput, DWORD cbOutput, DWORD *pcbResult, DWORD dwFlags);
+DECLSPEC_IMPORT SECURITY_STATUS WINAPI NCRYPT$NCryptOpenKey (NCRYPT_PROV_HANDLE hProvider, NCRYPT_KEY_HANDLE *phKey, LPCWSTR pszKeyName, DWORD dwLegacyKeySpec, DWORD dwFlags);
+DECLSPEC_IMPORT SECURITY_STATUS WINAPI NCRYPT$NCryptOpenStorageProvider (NCRYPT_PROV_HANDLE *phProvider, LPCWSTR pszProviderName, DWORD dwFlags);
+
+// SECUR32
+DECLSPEC_IMPORT     WINBASEAPI DWORD WINAPI SECUR32$AcquireCredentialsHandleA(LPSTR, LPSTR, unsigned long, void*, void*, SEC_GET_KEY_FN, void *, PCredHandle, PTimeStamp);
+DECLSPEC_IMPORT     WINBASEAPI DWORD WINAPI SECUR32$InitializeSecurityContextA(PCredHandle, PCtxtHandle, SEC_CHAR*, unsigned long, unsigned long, unsigned long, PSecBufferDesc, unsigned long, PCtxtHandle, PSecBufferDesc, unsigned long *, PTimeStamp);
+DECLSPEC_IMPORT     WINBASEAPI DWORD WINAPI SECUR32$AcceptSecurityContext(PCredHandle, PCtxtHandle, PSecBufferDesc, unsigned long, unsigned long, PCtxtHandle, PSecBufferDesc, unsigned long *, PTimeStamp);
+DECLSPEC_IMPORT     KSECDDDECLSPEC SECURITY_STATUS SEC_ENTRY SECUR32$QuerySecurityContextToken(PCtxtHandle phContext, void **Token);
+DECLSPEC_IMPORT     WINBASEAPI SECURITY_STATUS WINAPI SECUR32$FreeCredentialsHandle(PCredHandle phCredential);
+DECLSPEC_IMPORT     WINBASEAPI SECURITY_STATUS WINAPI SECUR32$DeleteSecurityContext(PCtxtHandle phContext);
 
 #endif // end DEFINTIIONS_H
