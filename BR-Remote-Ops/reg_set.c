@@ -101,7 +101,7 @@ void coffee(char *argv[], int argc, WCHAR** dispatch) {
 	g_dispatch = dispatch;
 
 	if (argc != 6) {
-        BadgerDispatch(dispatch, "[!] Usage: reg_set.o <Registry Hive> <Hostname> <Registry Path> <Registry Key Value> [-h|-i|-a] <Registry Key Data>\n NOTE:\n 1. Specify Registry hive as follows, HKEY_CLASSES_ROOT as HKCR, HKEY_CURRENT_USER as HKCU, HKEY_LOCAL_MACHINE as HKLM, HKEY_USERS as HKU and HKEY_CURRENT_CONFIG as HKCC \n 2. Use empty string \"\" for no path. \n 3. Keep hostname 'localhost' for local machine\n 4. Specify -h option for hex data, -i for integer data, -a for ascii data for the registry key data of key Value\n 5. E.g.: reg-set.o HKCU localhost \"Uninstall\\Test\" TestVal -h 0xefcdcdcd\n");
+        BadgerDispatch(dispatch, "[!] Usage: reg_set.o <Registry Hive> <Hostname> <Registry Path> <Registry Key Value> [-h|-i|-a] <Registry Key Data>\n NOTE:\n 1. Specify Registry hive as follows, HKEY_CLASSES_ROOT as HKCR, HKEY_CURRENT_USER as HKCU, HKEY_LOCAL_MACHINE as HKLM, HKEY_USERS as HKU and HKEY_CURRENT_CONFIG as HKCC \n 2. Use empty string \"\" or NULL for no path. \n 3. Keep hostname 'localhost' for local machine\n 4. Specify -h option for hex data, -i for integer data, -a for ascii data for the registry key data of key Value\n 5. E.g.: reg-set.o HKCU localhost \"Uninstall\\Test\" TestVal -h 0xefcdcdcd\n");
         return;
     }
 	hkey = argv[0];
@@ -130,11 +130,14 @@ void coffee(char *argv[], int argc, WCHAR** dispatch) {
 		lpszHostName = NULL;
 	}
 	lpszRegPathName = argv[2];
-	BadgerDispatch(dispatch, "[*] Registry path: %s\n", lpszRegPathName);
-	if (lpszRegPathName == "") {
+	if (lpszRegPathName == NULL || lpszRegPathName[0] == '\0' || BadgerStrcmp(lpszRegPathName, "NULL") == 0) {
 		lpszRegPathName = NULL;
 	}
+	BadgerDispatch(dispatch, "[*] Registry path: %s\n", lpszRegPathName);
 	lpszRegValueName = argv[3];
+	if (lpszRegValueName == NULL || lpszRegValueName[0] == '\0' || BadgerStrcmp(lpszRegValueName, "NULL") == 0) {
+		lpszRegValueName = NULL;
+	}
 	BadgerDispatch(dispatch, "[*] Registry value: %s\n", lpszRegValueName);
 	option = argv[4];
 	BadgerDispatch(dispatch, "[*] Option: %s\n", option);
