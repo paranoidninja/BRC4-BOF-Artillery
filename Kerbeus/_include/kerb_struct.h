@@ -1,10 +1,14 @@
 #pragma once
 
+#include <stdbool.h>
+
 typedef unsigned int uint;
 typedef unsigned char byte;
+#ifndef __bool_true_false_are_defined
 typedef int bool;
 #define true 1
 #define false 0
+#endif
 
 enum KRB_KEY_USAGE {
 	KRB_KEY_USAGE_AS_REQ_PA_ENC_TIMESTAMP = 1,

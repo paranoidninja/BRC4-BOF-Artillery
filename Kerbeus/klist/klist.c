@@ -156,7 +156,7 @@ bool ExtractTicket(HANDLE hLsa, ULONG authPackage, LUID luid, UNICODE_STRING tar
     MemCpy(retrieveRequest->TargetName.Buffer, targetName.Buffer, targetName.MaximumLength);
 
     NTSTATUS protocolStatus;
-    bool status = SECUR32$LsaCallAuthenticationPackage(hLsa, authPackage, retrieveRequest, responseSize, &retrieveResponse, &responseSize, &protocolStatus);
+    bool status = SECUR32$LsaCallAuthenticationPackage(hLsa, authPackage, retrieveRequest, responseSize, (PVOID *)&retrieveResponse, &responseSize, &protocolStatus);
     if (!status && !protocolStatus) {
         if (responseSize > 0) {
             ULONG size = retrieveResponse->Ticket.EncodedTicketSize;
@@ -390,7 +390,7 @@ void KLIST( char* luid, char* targetService, char* targetUser, char* targetClien
                 KERB_TICKET_CACHE_INFO_EX cacheInfo;
                 ULONG responseSize;
                 NTSTATUS protocolStatus;
-                if (SECUR32$LsaCallAuthenticationPackage(hLsa, authPackage, &cacheRequest, sizeof(cacheRequest), &cacheResponse, &responseSize, &protocolStatus)) continue;
+                if (SECUR32$LsaCallAuthenticationPackage(hLsa, authPackage, &cacheRequest, sizeof(cacheRequest), (PVOID *)&cacheResponse, &responseSize, &protocolStatus)) continue;
                 if (cacheResponse == NULL)
                     continue;
 

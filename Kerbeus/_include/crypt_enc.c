@@ -1,7 +1,10 @@
 #pragma once
 #include "functions.c"
 
-BOOL encrypt(byte* rawBytes, int rawSize, byte* key, DWORD eType, int keyUsage, byte** result, DWORD* size) {
+#define encrypt(rawBytes, rawSize, key, eType, keyUsage, result, size) \
+    encrypt_impl(rawBytes, rawSize, key, eType, keyUsage, result, (DWORD *)(size))
+
+BOOL encrypt_impl(byte* rawBytes, int rawSize, byte* key, DWORD eType, int keyUsage, byte** result, DWORD* size) {
     PKERB_ECRYPT pCSystem;
     PVOID pContext;
     BOOL status = FALSE;

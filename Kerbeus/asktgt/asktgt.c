@@ -232,7 +232,7 @@ BOOL HandleASREP(AsnElt responseAsn, EncryptionKey encKey, byte* serviceKey, BOO
     byte* key = NULL;
     size_t keySize;
     byte* result;
-    size_t resultSize;
+    int resultSize;
     key = encKey.key_value;
     if (as_rep.enc_part.etype != encKey.key_type) {
         PRINT_OUT("[!] Warning: Supplied encyption key type but AS-REP contains data encrypted");
@@ -404,7 +404,7 @@ BOOL NewAS_REQ(char* pcUsername, char* pcDomain, EncryptionKey encKey, BOOL opse
             return TRUE;
         }
 
-        int size = MAX_COMPUTERNAME_LENGTH + 2;
+        DWORD size = MAX_COMPUTERNAME_LENGTH + 2;
         char* hostname = MemAlloc(size);
         if (!hostname) {
             PRINT_OUT("[x] Failed alloc memory");

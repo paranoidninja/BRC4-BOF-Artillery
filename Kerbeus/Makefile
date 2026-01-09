@@ -19,3 +19,6 @@ bof:
 	@(x86_64-w64-mingw32-gcc -w -o _bin/kerberoasting.x64.o -I ./ -Os -s -c kerberoasting/kerberoasting.c && x86_64-w64-mingw32-strip --strip-unneeded _bin/kerberoasting.x64.o) && echo '[*] kerberoasting' || echo '[X] kerberoasting'
 	@(x86_64-w64-mingw32-gcc -w -o _bin/s4u.x64.o -I ./ -Os -s -c s4u/s4u.c && x86_64-w64-mingw32-strip --strip-unneeded _bin/s4u.x64.o) && echo '[*] s4u' || echo '[X] s4u'
 	@(x86_64-w64-mingw32-gcc -w -o _bin/cross_s4u.x64.o -I ./ -Os -s -c s4u/cross_s4u.c && x86_64-w64-mingw32-strip --strip-unneeded _bin/cross_s4u.x64.o) && echo '[*] cross_s4u' || echo '[X] cross_s4u'
+
+clean:
+	rm -rf out64 out86

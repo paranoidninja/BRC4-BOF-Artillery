@@ -68,9 +68,9 @@ void FlasToBytes(UINT32 Options, byte* OptionsBytes) {
 
 
 
-int CodePoint(wchar_t* str, int* offset) {
+int CodePoint(wchar_t* str, size_t* offset) {
     int c = str[(*offset)++];
-    if (c >= 0xD800 && c < 0xDC00 && *offset < my_strlen(str)) {
+    if (c >= 0xD800 && c < 0xDC00 && *offset < my_wcslen(str)) {
         int d = str[(*offset)];
         if (d >= 0xDC00 && d < 0xE000) {
             (*offset)++;
@@ -92,8 +92,8 @@ bool EncodeMono(wchar_t* str, int* len, byte** ms) {
 }
 
 bool EncodeUTF8(wchar_t* str, int* len, byte** ms) {
-    int k = 0;
-    int n = my_wcslen(str);
+    size_t k = 0;
+    size_t n = my_wcslen(str);
     int capacity = 32;
     int size = 0;
     *ms = MemAlloc(n * 4);
@@ -1132,12 +1132,13 @@ bool AsnKrbCredEncode(KRB_CRED* krb_cred, AsnElt* finalContext) {
     return false;
 }
 
-bool AsnADEncode(ADIfRelevant* adif, AsnElt** finalContext) {
+bool AsnADEncode(const void* ad, AsnElt* finalContext) {
+    const ADRestrictionEntry* base = (const ADRestrictionEntry*)ad;
     AsnElt adTypeSeqContext = { 0 };
-    if (PackIntegerLong(0, adif->ad_type, &adTypeSeqContext)) return true;
+    if (PackIntegerLong(0, base->ad_type, &adTypeSeqContext)) return true;
 
     AsnElt adDataSeqContext = { 0 };
-    if (PackBlock(1, adif->ad_data, adif->ad_data_length, &adDataSeqContext) ) return true;
+    if (PackBlock(1, base->ad_data, base->ad_data_length, &adDataSeqContext) ) return true;
 
     AsnElt seq[] = { adTypeSeqContext, adDataSeqContext };
     if (Make3(ASN_SEQUENCE, seq, 2, finalContext)) return true;
@@ -1272,7 +1273,7 @@ bool AsnEncKrbPrivPartEncode(EncKrbPrivPart* privPart, AsnElt* totalSeq) {
     AsnElt new_passwordBlobAsn = { 0 }, new_passwordSeqContext = { 0 };
     char* new_passwordBlob = NULL;
     int new_passwordBlobSize = 0;
-    if (AsnToBytesEncode(&new_passwordSeq, &new_passwordBlobSize, &new_passwordBlob))return true;
+    if (AsnToBytesEncode(&new_passwordSeq, &new_passwordBlobSize, (byte**)&new_passwordBlob))return true;
     if (MakeBlob(new_passwordBlob, 0, new_passwordBlobSize, &new_passwordBlobAsn)) return true;
     if (MakeExplicit(ASN_CONTEXT, 0, &new_passwordBlobAsn, 1, &new_passwordSeqContext)) return true;
 

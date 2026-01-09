@@ -70,7 +70,7 @@ int CopyValue3(AsnElt* a, byte* dst, int off) {
 
 
 
-bool DecodeUTF8(byte* buf, int off, int len, byte** ret, int* ret_length) {
+bool DecodeUTF8(byte* buf, int off, int len, wchar_t** ret, int* ret_length) {
     if (len >= 3 && buf[off] == 0xEF && buf[off + 1] == 0xBB && buf[off + 2] == 0xBF) {
         off += 3;
         len -= 3;
@@ -420,10 +420,10 @@ bool AsnGetOctetString(AsnElt* a, byte** ret, int* len) {
     return false;
 }
 
-bool AsnGetString(AsnElt* a, byte** ret) {
+bool AsnGetString(AsnElt* a, char** ret) {
     int len = 0;
     char* r = 0;
-    if (AsnGetOctetString(a, &r, &len)) return true;
+    if (AsnGetOctetString(a, (byte**)&r, &len)) return true;
 
     if (my_copybuf(ret, r, len + 1)) {
         return true;
@@ -437,7 +437,7 @@ bool AsnGetPrincipalName(AsnElt* a, PrincipalName* pname) {
     pname->name_count = a->sub[1].sub[0].subCount;
     pname->name_string = MemAlloc(sizeof(void*) * pname->name_count);
     for (int i = 0; i < pname->name_count; i++) {
-        byte* s = 0;
+        char* s = 0;
         int len = ValueLength(&(a->sub[1].sub[0].sub[i]));
         if (AsnGetString(&(a->sub[1].sub[0].sub[i]), &s)) {
             return true;
@@ -453,7 +453,7 @@ bool AsnGetPrincipalName(AsnElt* a, PrincipalName* pname) {
 }
 
 bool AsnGetEncryptedData(AsnElt* a, EncryptedData* encdata) {
-    long long tmpLong = 0;
+    long tmpLong = 0;
     for (int i = 0;i < a->subCount; i++) {
         switch (a->sub[i].tagValue) {
             case 0:
@@ -475,7 +475,7 @@ bool AsnGetEncryptedData(AsnElt* a, EncryptedData* encdata) {
 }
 
 bool AsnGetTicket(AsnElt* a, Ticket* ticket) {
-    long long tmpLong = 0;
+    long tmpLong = 0;
     for (int i = 0; i < a->subCount; i++) {
         switch (a->sub[i].tagValue) {
             case 0:
@@ -499,7 +499,7 @@ bool AsnGetTicket(AsnElt* a, Ticket* ticket) {
 }
 
 bool AsnGetErrorCode(AsnElt* a, uint* error) {
-    long long tmpLong = 0;
+    long tmpLong = 0;
     for (int i = 0; i < a->subCount; i++) {
         if (a->sub[i].tagValue == 6) {
             if (AsnGetInteger(&(a->sub[i].sub[0]), &tmpLong))
@@ -512,7 +512,7 @@ bool AsnGetErrorCode(AsnElt* a, uint* error) {
 }
 
 bool AsnGetEncryptionKey(AsnElt* a, EncryptionKey* enc_key) {
-    long long tmpLong = 0;
+    long tmpLong = 0;
     AsnElt s = a->sub[0];
     for (int i = 0; i < s.subCount; i++) {
         switch (s.sub[i].tagValue) {
@@ -686,7 +686,7 @@ bool AsnGetTime(AsnElt* a, DateTime* dt) {
 }
 
 bool AsnGetLastReq(AsnElt* a, LastReq* last_req) {
-    long long tmpLong = 0;
+    long tmpLong = 0;
     AsnElt s = a->sub[0];
     for (int i = 0; i < s.subCount; i++) {
         switch (s.sub[i].tagValue) {
@@ -706,7 +706,7 @@ bool AsnGetLastReq(AsnElt* a, LastReq* last_req) {
 
 bool AsnGetEncryptedPAData(AsnElt* body, EncryptedPAData* data) {
     for (int i = 0; i < body->sub[0].subCount; i++) {
-        long long ll = 0;
+        long ll = 0;
         switch (body->sub[0].sub[i].tagValue) {
             case 1:
                 if (AsnGetInteger(&(body->sub[0].sub[i].sub[0]), &ll)) return true;
@@ -738,7 +738,7 @@ bool AsnGetEncKDCRepPart(AsnElt* a, EncKDCRepPart* rep_part) {
             if (AsnGetLastReq(&(a->sub[i].sub[0]), &(rep_part->lastReq))) return true;
         }
         if( tagValue == 2 ){
-            long long tmpLong = 0;
+            long tmpLong = 0;
             if (AsnGetInteger(&(a->sub[i].sub[0]), &tmpLong)) return true;
             rep_part->nonce = (uint)tmpLong;
         }
@@ -746,7 +746,7 @@ bool AsnGetEncKDCRepPart(AsnElt* a, EncKDCRepPart* rep_part) {
             if (AsnGetTime(&(a->sub[i].sub[0]), &(rep_part->key_expiration))) return true;
         }
         if( tagValue == 4 ){
-            long long tmpLong = 0;
+            long tmpLong = 0;
             if (AsnGetInteger(&(a->sub[i].sub[0]), &tmpLong)) return true;
             rep_part->flags = (uint)tmpLong;
         }
@@ -864,7 +864,7 @@ bool AsnGetKrbCred(AsnElt* body, KRB_CRED* cred) {
 
 bool AsnGet_ETYPE_INFO2_ENTRY(AsnElt* body, ETYPE_INFO2_ENTRY* entry) {
     for (int i = 0; i < body->sub[0].subCount; i++) {
-        long long ll = 0;
+        long ll = 0;
         switch (body->sub[0].sub[i].tagValue) {
             case 0:
                 if (AsnGetInteger(&(body->sub[0].sub[i].sub[0]), &ll)) return true;
@@ -885,11 +885,15 @@ bool AsnGetPaData(AsnElt* body, PA_DATA* padata) {
     int   valueBytesLength = 0;
 
     if (body->subCount > 1 && body->sub[0].subCount && body->sub[1].subCount) {
-        AsnGetInteger(&(body->sub[0].sub[0]), &(padata->type));
+        long tmp_type = 0;
+        AsnGetInteger(&(body->sub[0].sub[0]), &tmp_type);
+        padata->type = (uint)tmp_type;
         AsnGetOctetString(&(body->sub[1].sub[0]), &valueBytes, &valueBytesLength);
     }
     else if (body->subCount && body->sub[0].subCount > 1 && body->sub[0].sub[0].subCount && body->sub[0].sub[1].subCount) {
-        AsnGetInteger(&(body->sub[0].sub[0].sub[0]), &(padata->type));
+        long tmp_type = 0;
+        AsnGetInteger(&(body->sub[0].sub[0].sub[0]), &tmp_type);
+        padata->type = (uint)tmp_type;
         AsnGetOctetString(&(body->sub[0].sub[1].sub[0]), &valueBytes, &valueBytesLength);
     }
     else {

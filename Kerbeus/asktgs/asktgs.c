@@ -608,7 +608,7 @@ BOOL NewTGS_REQ(char* userName, char* domain, char* sname, Ticket providedTicket
             req.req_body.kdc_options = req.req_body.kdc_options ^ (req.req_body.kdc_options & RENEWABLEOK);
 
         // get hostname and hostname of SPN
-        int size = MAX_COMPUTERNAME_LENGTH + 2;
+        DWORD size = MAX_COMPUTERNAME_LENGTH + 2;
         char* hostname = MemAlloc(size);
         if (!hostname) {
             PRINT_OUT("[x] Failed alloc memory");
@@ -881,7 +881,7 @@ BOOL TGS(char* userName, char* domain, Ticket providedTicket, EncryptionKey clie
                 if (keyListHash.key_size) {
                     int hexHashLength = keyListHash.key_size * 2 + 1;
                     char* hex_hash = MemAlloc(hexHashLength);
-                    my_tohex(keyListHash.key_value, keyListHash.key_size, hex_hash, hexHashLength);
+                    my_tohex(keyListHash.key_value, keyListHash.key_size, &hex_hash, hexHashLength);
                     PRINT_OUT("[*]\t aes256_cts_hmac_sha1 \t: %s\n", hex_hash);
                 }
                 else {
@@ -952,10 +952,10 @@ void ASK_TGS_RUN( PCHAR Buffer, DWORD Length ) {
     char* targetDomain = NULL;
     char* targetUser   = NULL;
     int   encType      = subkey_keymaterial;
-    bool  ptt          = FALSE;
-    bool  opsec        = FALSE;
-    bool  keyList      = FALSE;
-    bool  u2u          = FALSE;
+    BOOL  ptt          = FALSE;
+    BOOL  opsec        = FALSE;
+    BOOL  keyList      = FALSE;
+    BOOL  u2u          = FALSE;
 
     for (int i = 0; i < Length; i++) {
         i += GetStrParam(Buffer + i, Length - i, "/service:", 9, &service );

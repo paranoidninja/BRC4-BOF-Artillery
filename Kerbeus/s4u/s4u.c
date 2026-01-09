@@ -281,7 +281,7 @@ BOOL New_PA_DATA_s4uX509user(EncryptionKey key, char* name, char* realm, uint no
     userIDBytes_length = EncodeValue(&userIDSeq, 0, userIDBytes_length, userIDBytes, 0);
 
     byte* cksumBytes = NULL;
-    int cksumBytesLength = 0;
+    DWORD cksumBytesLength = 0;
 
     if (eType == aes256_cts_hmac_sha1)
         if (checksum(key.key_value, key.key_size, userIDBytes, userIDBytes_length, KERB_CHECKSUM_HMAC_SHA1_96_AES256, KRB_KEY_USAGE_PA_S4U_X509_USER, &cksumBytes, &cksumBytesLength)) return TRUE;
@@ -291,7 +291,7 @@ BOOL New_PA_DATA_s4uX509user(EncryptionKey key, char* name, char* realm, uint no
         if (checksum(key.key_value, key.key_size, userIDBytes, userIDBytes_length, KERB_CHECKSUM_RSA_MD4, KRB_KEY_USAGE_PA_S4U_X509_USER, &cksumBytes, &cksumBytesLength)) return TRUE;
 
     pa->cksum.cksumtype = KERB_CHECKSUM_HMAC_SHA1_96_AES256;
-    pa->cksum.checksum_length = cksumBytesLength;
+    pa->cksum.checksum_length = (int)cksumBytesLength;
     pa->cksum.checksum = cksumBytes;
 
     pa_data->type = PADATA_PA_S4U_X509_USER;
@@ -326,11 +326,11 @@ BOOL New_PA_DATA_s4u2self(EncryptionKey key, char* name, char* realm, PA_DATA* p
     MemCpy(finalBytes + 4 + name_length + realm_length, pa->auth_package, 8);
 
     byte* outBytes = NULL;
-    int outBytesLength = 0;
+    DWORD outBytesLength = 0;
     if (checksum(key.key_value, key.key_size, finalBytes, 4 + name_length + realm_length + 8, KERB_CHECKSUM_HMAC_MD5, KRB_KEY_USAGE_KRB_NON_KERB_CKSUM_SALT, &outBytes, &outBytesLength)) return TRUE;
 
     pa->cksum.cksumtype = KERB_CHECKSUM_HMAC_MD5;
-    pa->cksum.checksum_length = outBytesLength;
+    pa->cksum.checksum_length = (int)outBytesLength;
     pa->cksum.checksum = outBytes;
 
     pa_data->type = PADATA_S4U2SELF;
@@ -599,7 +599,7 @@ BOOL NewTGS_REQ(char* userName, char* domain, char* sname, Ticket providedTicket
         req.req_body.kdc_options = CANONICALIZE;
 
     byte* cksum_Bytes = NULL;
-    int cksum_Bytes_length = 0;
+    DWORD cksum_Bytes_length = 0;
 
     if (opsec) {
         req.req_body.kdc_options = req.req_body.kdc_options | CANONICALIZE;
@@ -609,7 +609,7 @@ BOOL NewTGS_REQ(char* userName, char* domain, char* sname, Ticket providedTicket
             req.req_body.kdc_options = req.req_body.kdc_options ^ (req.req_body.kdc_options & RENEWABLEOK);
 
         // get hostname and hostname of SPN
-        int size = MAX_COMPUTERNAME_LENGTH + 2;
+        DWORD size = MAX_COMPUTERNAME_LENGTH + 2;
         char* hostname = MemAlloc(size);
         if (!hostname) {
             PRINT_OUT("[x] Failed alloc memory");
@@ -670,8 +670,10 @@ BOOL NewTGS_REQ(char* userName, char* domain, char* sname, Ticket providedTicket
 
             byte* enc_authorization_data = NULL;
             int enc_authorization_data_length = 0;
+            DWORD cipher_size = 0;
             if (encrypt(authorizationDataBytes, authorizationDataBytesLegth, clientKey.key_value, clientKey.key_type, KRB_KEY_USAGE_TGS_REQ_ENC_AUTHOIRZATION_DATA,
-                        &(req.req_body.enc_authorization_data.cipher), &(req.req_body.enc_authorization_data.cipher_size))) return TRUE;
+                        &(req.req_body.enc_authorization_data.cipher), &cipher_size)) return TRUE;
+            req.req_body.enc_authorization_data.cipher_size = (uint)cipher_size;
         }
 
         // S4U requests have a till time of 15 minutes in the future
@@ -963,7 +965,7 @@ BOOL S4U2Proxy(KRB_CRED kirbi, char* targetUser, char* targetSPN, char* domainCo
     s4u2proxyReq.req_body.additional_tickets[0] = tgs.tickets[0];
 
     byte* cksum_Bytes = NULL;
-    int cksum_Bytes_length = 0;
+    DWORD cksum_Bytes_length = 0;
 
     if (opsec) {
         // remove renewableok and add canonicalize
@@ -974,7 +976,7 @@ BOOL S4U2Proxy(KRB_CRED kirbi, char* targetUser, char* targetSPN, char* domainCo
         s4u2proxyReq.req_body.till = 900;
 
         // get hostname and hostname of SPN
-        int size = MAX_COMPUTERNAME_LENGTH + 2;
+        DWORD size = MAX_COMPUTERNAME_LENGTH + 2;
         char* hostname = MemAlloc(size);
         if (!hostname) {
             PRINT_OUT("[x] Failed alloc memory");
@@ -1031,8 +1033,10 @@ BOOL S4U2Proxy(KRB_CRED kirbi, char* targetUser, char* targetSPN, char* domainCo
 
             byte* enc_authorization_data = NULL;
             int enc_authorization_data_length = 0;
+            DWORD cipher_size = 0;
             if (encrypt(authorizationDataBytes, authorizationDataBytesLegth, tgs.enc_part.ticket_info[0].key.key_value, tgs.enc_part.ticket_info[0].key.key_type, KRB_KEY_USAGE_TGS_REQ_ENC_AUTHOIRZATION_DATA,
-                        &(s4u2proxyReq.req_body.enc_authorization_data.cipher), &(s4u2proxyReq.req_body.enc_authorization_data.cipher_size))) return TRUE;
+                        &(s4u2proxyReq.req_body.enc_authorization_data.cipher), &cipher_size)) return TRUE;
+            s4u2proxyReq.req_body.enc_authorization_data.cipher_size = (uint)cipher_size;
         }
 
         // encode req_body for authenticator cksum

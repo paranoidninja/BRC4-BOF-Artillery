@@ -1,7 +1,10 @@
 #pragma once
 #include "functions.c"
 
-BOOL checksum(byte* key, int key_length, byte* data, int data_length, int chksumUsage, int keyUsage, byte** result, DWORD* size) {
+#define checksum(key, key_length, data, data_length, chksumUsage, keyUsage, result, size) \
+    checksum_impl(key, key_length, data, data_length, chksumUsage, keyUsage, result, (DWORD *)(size))
+
+BOOL checksum_impl(byte* key, int key_length, byte* data, int data_length, int chksumUsage, int keyUsage, byte** result, DWORD* size) {
     PKERB_CHECKSUM pCheckSum;
     PVOID pContext;
 
